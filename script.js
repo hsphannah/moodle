@@ -6,97 +6,96 @@ document.addEventListener('DOMContentLoaded', () => {
     let editingAlunoId = null;
 
     // ===============================================
-    // LÓGICA DE DADOS (localStorage)
+    // FUNÇÕES DE CURSOS (100% CONECTADAS À API)
     // ===============================================
-    const getCourses = () => JSON.parse(localStorage.getItem('courses')) || [];
-    const saveCourses = (courses) => localStorage.setItem('courses', JSON.stringify(courses));
-    const getAlunos = () => JSON.parse(localStorage.getItem('alunos')) || [];
-    const saveAlunos = (alunos) => localStorage.setItem('alunos', JSON.stringify(alunos));
-
-    // ===============================================
-    // FUNÇÕES DE CURSOS
-    // ===============================================
-    const renderCourses = () => {
+    const renderCourses = async () => {
         const container = document.getElementById('course-cards-container');
         if (!container) return;
-        const courses = getCourses();
-        container.innerHTML = '';
-        if (courses.length === 0) {
-            container.innerHTML = `<p class="empty-message">Nenhum curso cadastrado ainda. Clique em "Novo Curso" para começar!</p>`;
-        } else {
-            courses.forEach(course => {
-                container.innerHTML += `
-                    <div class="course-card">
-                        <div class="course-card-header">
-                            <span class="status-badge">Ativo</span>
-                            <button class="btn-icon" data-action="delete-course" data-course-id="${course.id}" title="Excluir Curso">
-                                <span class="material-symbols-outlined">delete</span>
-                            </button>
-                        </div>
-                        <div class="course-card-body"><h2>${course.name}</h2><p>${course.description}</p></div>
-                        <div class="course-card-footer">
-                            <div class="course-stats"><span>0 alunos</span><span>0 aulas</span></div>
-                            <div class="course-actions">
-                                <button class="btn btn-secondary" data-action="view-details-course" data-course-id="${course.id}">Ver Detalhes</button>
-                                <button class="btn btn-danger" data-action="edit-course" data-course-id="${course.id}">Editar</button>
-                            </div>
-                        </div>
-                    </div>`;
-            });
+        try {
+            const response = await fetch('http://localhost:3000/api/cursos');
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Erro ao buscar cursos.');
+            const courses = result.data;
+            container.innerHTML = '';
+            if (courses.length === 0) {
+                container.innerHTML = `<p class="empty-message">Nenhum curso cadastrado ainda. Clique em "Novo Curso" para começar!</p>`;
+            } else {
+                courses.forEach(course => {
+                    container.innerHTML += `<div class="course-card"><div class="course-card-header"><span class="status-badge">Ativo</span><button class="btn-icon" data-action="delete-course" data-course-id="${course.id}" title="Excluir Curso"><span class="material-symbols-outlined">delete</span></button></div><div class="course-card-body"><h2>${course.name}</h2><p>${course.description}</p></div><div class="course-card-footer"><div class="course-stats"><span>0 alunos</span><span>0 aulas</span></div><div class="course-actions"><button class="btn btn-secondary" data-action="view-details-course" data-course-id="${course.id}">Ver Detalhes</button><button class="btn btn-danger" data-action="edit-course" data-course-id="${course.id}">Editar</button></div></div></div>`;
+                });
+            }
+        } catch (error) {
+            console.error("Erro ao buscar cursos:", error);
+            container.innerHTML = `<p class="empty-message">Erro ao carregar os cursos. Verifique se o servidor back-end está rodando.</p>`;
         }
     };
 
-    const handleViewCourseDetails = (courseId) => {
-        const courses = getCourses();
-        const course = courses.find(c => c.id === courseId);
-        if (!course) return;
-        document.getElementById('detalhes-curso-nome').textContent = course.name;
-        document.getElementById('detalhes-curso-descricao').textContent = course.description;
-        document.getElementById('detalhes-curso-alunos').textContent = '0';
-        document.getElementById('detalhes-curso-aulas').textContent = '0';
-        document.getElementById('modal-detalhes-curso').classList.add('active');
-    };
-
-    const handleSaveCourse = () => {
+    const handleSaveCourse = async () => {
         const courseNameInput = document.getElementById('curso-nome');
         const courseDescInput = document.getElementById('curso-descricao');
-        if (!courseNameInput || !courseDescInput) return;
-        const courses = getCourses();
-        if (editingCourseId) {
-            const courseToUpdate = courses.find(course => course.id === editingCourseId);
-            if (courseToUpdate) {
-                courseToUpdate.name = courseNameInput.value;
-                courseToUpdate.description = courseDescInput.value;
-            }
-        } else {
-            const newCourse = { id: Date.now(), name: courseNameInput.value, description: courseDescInput.value };
-            if (!newCourse.name || !newCourse.description) { alert('Por favor, preencha todos os campos.'); return; }
-            courses.push(newCourse);
+        const courseData = { name: courseNameInput.value, description: courseDescInput.value };
+        if (!courseData.name || !courseData.description) { alert('Por favor, preencha todos os campos.'); return; }
+        
+        const url = editingCourseId 
+            ? `http://localhost:3000/api/cursos/${editingCourseId}`
+            : 'http://localhost:3000/api/cursos';
+        const method = editingCourseId ? 'PUT' : 'POST';
+
+        try {
+            const response = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(courseData) });
+            if (!response.ok) { const errorResult = await response.json(); throw new Error(errorResult.error || 'Erro ao salvar o curso.'); }
+            renderCourses();
+            closeCourseModal();
+        } catch (error) {
+            console.error('Falha ao salvar o curso:', error);
+            alert(`Não foi possível salvar o curso: ${error.message}`);
         }
-        saveCourses(courses);
-        renderCourses();
-        closeCourseModal();
     };
 
-    const handleEditCourse = (courseId) => {
-        const courses = getCourses();
-        const courseToEdit = courses.find(course => course.id === courseId);
-        if (!courseToEdit) return;
-        editingCourseId = courseId;
-        document.getElementById('curso-nome').value = courseToEdit.name;
-        document.getElementById('curso-descricao').value = courseToEdit.description;
-        document.querySelector('#modal-novo-curso .modal-header h2').textContent = 'Editar Curso';
-        document.getElementById('modal-novo-curso').classList.add('active');
+    const handleEditCourse = async (courseId) => {
+        try {
+            const response = await fetch(`http://localhost:3000/api/cursos/${courseId}`);
+            if (!response.ok) { const errorResult = await response.json(); throw new Error(errorResult.error || 'Curso não encontrado.'); }
+            const result = await response.json();
+            const courseToEdit = result.data;
+            editingCourseId = courseId;
+            document.getElementById('curso-nome').value = courseToEdit.name;
+            document.getElementById('curso-descricao').value = courseToEdit.description;
+            document.querySelector('#modal-novo-curso .modal-header h2').textContent = 'Editar Curso';
+            document.getElementById('modal-novo-curso').classList.add('active');
+        } catch (error) {
+            console.error('Falha ao buscar dados para edição:', error);
+            alert(`Não foi possível carregar o curso para edição: ${error.message}`);
+        }
     };
 
-    const handleDeleteCourse = (courseId) => {
+    const handleDeleteCourse = async (courseId) => {
         if (!window.confirm('Tem certeza que deseja excluir este curso?')) return;
-        let courses = getCourses();
-        courses = courses.filter(course => course.id !== courseId);
-        saveCourses(courses);
-        renderCourses();
+        try {
+            const response = await fetch(`http://localhost:3000/api/cursos/${courseId}`, { method: 'DELETE' });
+            if (!response.ok) { const errorResult = await response.json(); throw new Error(errorResult.error || 'Erro ao excluir o curso.'); }
+            renderCourses();
+        } catch (error) {
+            console.error('Falha ao excluir o curso:', error);
+            alert(`Não foi possível excluir o curso: ${error.message}`);
+        }
     };
-
+    
+    const handleViewCourseDetails = async (courseId) => {
+        try {
+            const response = await fetch(`http://localhost:3000/api/cursos/${courseId}`);
+            if (!response.ok) { const errorResult = await response.json(); throw new Error(errorResult.error || 'Curso não encontrado.'); }
+            const result = await response.json();
+            const course = result.data;
+            document.getElementById('detalhes-curso-nome').textContent = course.name;
+            document.getElementById('detalhes-curso-descricao').textContent = course.description;
+            document.getElementById('modal-detalhes-curso').classList.add('active');
+        } catch (error) {
+            console.error('Falha ao buscar detalhes do curso:', error);
+            alert(`Não foi possível ver os detalhes do curso: ${error.message}`);
+        }
+    };
+    
     const closeCourseModal = () => {
         const modal = document.getElementById('modal-novo-curso');
         if (!modal) return;
@@ -108,80 +107,79 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // ===============================================
-    // FUNÇÕES DE ALUNOS
+    // FUNÇÕES DE ALUNOS (100% CONECTADAS À API)
     // ===============================================
-    const renderAlunos = () => {
+    const renderAlunos = async () => {
         const container = document.getElementById('student-list-container');
         if (!container) return;
-        const alunos = getAlunos();
-        container.innerHTML = '';
-        if (alunos.length === 0) {
-            container.innerHTML = `<p class="empty-message">Nenhum aluno cadastrado ainda. Clique em "Adicionar Aluno" para começar!</p>`;
-        } else {
-            alunos.forEach(aluno => {
-                container.innerHTML += `
-                    <div class="student-list-item-card">
-                        <div class="student-info">
-                            <div class="student-name-header">
-                                <strong class="student-name">${aluno.name}</strong>
-                                <button class="btn-icon" data-action="delete-aluno" data-aluno-id="${aluno.id}" title="Excluir Aluno">
-                                    <span class="material-symbols-outlined">delete</span>
-                                </button>
-                            </div>
-                            <span class="student-email">${aluno.email}</span>
-                        </div>
-                        <div class="student-course-info"><span class="info-label">Curso</span><strong>${aluno.course}</strong></div>
-                        <div class="student-progress-info"><span class="info-label">Progresso</span><strong>0%</strong></div>
-                        <div class="student-activity-info"><span class="info-label">Último acesso</span><strong>Nunca</strong></div>
-                        <div class="student-actions">
-                            <button class="btn btn-secondary" data-action="edit-aluno" data-aluno-id="${aluno.id}">Editar</button>
-                        </div>
-                    </div>`;
-            });
+        try {
+            const response = await fetch('http://localhost:3000/api/alunos');
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Erro ao buscar alunos.');
+            const alunos = result.data;
+            container.innerHTML = '';
+            if (alunos.length === 0) {
+                container.innerHTML = `<p class="empty-message">Nenhum aluno cadastrado ainda. Clique em "Adicionar Aluno" para começar!</p>`;
+            } else {
+                alunos.forEach(aluno => {
+                    container.innerHTML += `<div class="student-list-item-card"><div class="student-info"><div class="student-name-header"><strong class="student-name">${aluno.name}</strong><button class="btn-icon" data-action="delete-aluno" data-aluno-id="${aluno.id}" title="Excluir Aluno"><span class="material-symbols-outlined">delete</span></button></div><span class="student-email">${aluno.email}</span></div><div class="student-course-info"><span class="info-label">Curso</span><strong>${aluno.course}</strong></div><div class="student-progress-info"><span class="info-label">Progresso</span><strong>0%</strong></div><div class="student-activity-info"><span class="info-label">Último acesso</span><strong>Nunca</strong></div><div class="student-actions"><button class="btn btn-secondary" data-action="edit-aluno" data-aluno-id="${aluno.id}">Editar</button></div></div>`;
+                });
+            }
+        } catch (error) {
+            console.error("Erro ao buscar alunos:", error);
+            container.innerHTML = `<p class="empty-message">Erro ao carregar os alunos. Verifique se o servidor back-end está rodando.</p>`;
         }
     };
     
-    const handleSaveAluno = () => {
+    const handleSaveAluno = async () => {
         const alunoNameInput = document.getElementById('aluno-nome');
         const alunoEmailInput = document.getElementById('aluno-email');
         const alunoCourseSelect = document.getElementById('aluno-curso');
-        if (!alunoNameInput || !alunoEmailInput || !alunoCourseSelect) return;
-        const alunos = getAlunos();
-        if (editingAlunoId) {
-            const alunoToUpdate = alunos.find(aluno => aluno.id === editingAlunoId);
-            if (alunoToUpdate) {
-                alunoToUpdate.name = alunoNameInput.value;
-                alunoToUpdate.email = alunoEmailInput.value;
-                alunoToUpdate.course = alunoCourseSelect.value;
-            }
-        } else {
-            const newAluno = { id: Date.now(), name: alunoNameInput.value, email: alunoEmailInput.value, course: alunoCourseSelect.value };
-            if (!newAluno.name || !newAluno.email || !alunoCourseSelect.value) { alert('Por favor, preencha todos os campos.'); return; }
-            alunos.push(newAluno);
+        const alunoData = { name: alunoNameInput.value, email: alunoEmailInput.value, course: alunoCourseSelect.value };
+        if (!alunoData.name || !alunoData.email || !alunoData.course) { alert('Por favor, preencha todos os campos.'); return; }
+        
+        const url = editingAlunoId ? `http://localhost:3000/api/alunos/${editingAlunoId}` : 'http://localhost:3000/api/alunos';
+        const method = editingAlunoId ? 'PUT' : 'POST';
+
+        try {
+            const response = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(alunoData) });
+            if (!response.ok) { const errorResult = await response.json(); throw new Error(errorResult.error || 'Erro ao salvar o aluno.'); }
+            renderAlunos();
+            closeAlunoModal();
+        } catch (error) {
+            console.error('Falha ao salvar o aluno:', error);
+            alert(`Não foi possível salvar o aluno: ${error.message}`);
         }
-        saveAlunos(alunos);
-        renderAlunos();
-        closeAlunoModal();
     };
     
-    const handleEditAluno = (alunoId) => {
-        const alunos = getAlunos();
-        const alunoToEdit = alunos.find(aluno => aluno.id === alunoId);
-        if (!alunoToEdit) return;
-        editingAlunoId = alunoId;
-        document.getElementById('aluno-nome').value = alunoToEdit.name;
-        document.getElementById('aluno-email').value = alunoToEdit.email;
-        document.getElementById('aluno-curso').value = alunoToEdit.course;
-        document.querySelector('#modal-novo-aluno .modal-header h2').textContent = 'Editar Aluno';
-        document.getElementById('modal-novo-aluno').classList.add('active');
+    const handleEditAluno = async (alunoId) => {
+        try {
+            const response = await fetch(`http://localhost:3000/api/alunos/${alunoId}`);
+            if (!response.ok) { const errorResult = await response.json(); throw new Error(errorResult.error || 'Aluno não encontrado.'); }
+            const result = await response.json();
+            const alunoToEdit = result.data;
+            editingAlunoId = alunoId;
+            document.getElementById('aluno-nome').value = alunoToEdit.name;
+            document.getElementById('aluno-email').value = alunoToEdit.email;
+            document.getElementById('aluno-curso').value = alunoToEdit.course;
+            document.querySelector('#modal-novo-aluno .modal-header h2').textContent = 'Editar Aluno';
+            document.getElementById('modal-novo-aluno').classList.add('active');
+        } catch (error) {
+            console.error('Falha ao buscar dados do aluno para edição:', error);
+            alert(`Não foi possível carregar o aluno para edição: ${error.message}`);
+        }
     };
 
-    const handleDeleteAluno = (alunoId) => {
+    const handleDeleteAluno = async (alunoId) => {
         if (!window.confirm('Tem certeza que deseja excluir este aluno?')) return;
-        let alunos = getAlunos();
-        alunos = alunos.filter(aluno => aluno.id !== alunoId);
-        saveAlunos(alunos);
-        renderAlunos();
+        try {
+            const response = await fetch(`http://localhost:3000/api/alunos/${alunoId}`, { method: 'DELETE' });
+            if (!response.ok) { const errorResult = await response.json(); throw new Error(errorResult.error || 'Erro ao excluir o aluno.'); }
+            renderAlunos();
+        } catch (error) {
+            console.error('Falha ao excluir o aluno:', error);
+            alert(`Não foi possível excluir o aluno: ${error.message}`);
+        }
     };
 
     const closeAlunoModal = () => {
@@ -196,19 +194,13 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // ===============================================
-    // GERENCIADOR DE CLIQUES CENTRAL
+    // GERENCIADOR DE CLIQUES E NAVEGAÇÃO
     // ===============================================
     document.addEventListener('click', (event) => {
         const target = event.target;
         const openModalButton = target.closest('[data-open-modal]');
         const actionButton = target.closest('[data-action]');
-        
-        if (openModalButton) {
-            const modalId = openModalButton.dataset.openModal;
-            document.getElementById(modalId)?.classList.add('active');
-            return;
-        }
-
+        if (openModalButton) { const modalId = openModalButton.dataset.openModal; document.getElementById(modalId)?.classList.add('active'); return; }
         const closeButton = target.closest('.close-button');
         if (closeButton || (actionButton && actionButton.dataset.action === 'cancel')) {
             const modalToClose = target.closest('.modal');
@@ -217,12 +209,10 @@ document.addEventListener('DOMContentLoaded', () => {
             else if (modalToClose) modalToClose.classList.remove('active');
             return;
         }
-        
         if (actionButton) {
             const action = actionButton.dataset.action;
             const courseId = parseInt(actionButton.dataset.courseId, 10);
             const alunoId = parseInt(actionButton.dataset.alunoId, 10);
-
             if (action === 'view-details-course') handleViewCourseDetails(courseId);
             if (action === 'save-course') handleSaveCourse();
             if (action === 'save-aluno') handleSaveAluno();
@@ -232,7 +222,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (action === 'delete-aluno') handleDeleteAluno(alunoId);
         }
     });
-
     document.querySelectorAll('.modal').forEach(modal => {
         modal.addEventListener('click', (event) => {
             if (event.target === modal) {
@@ -242,10 +231,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
-
-    // ===============================================
-    // NAVEGAÇÃO DE PÁGINAS
-    // ===============================================
     async function loadPage(page) {
         mainContent.innerHTML = '<h1>Carregando...</h1>';
         try {
@@ -258,7 +243,6 @@ document.addEventListener('DOMContentLoaded', () => {
             mainContent.innerHTML = `<h1>Erro ao carregar a página.</h1><p>Verifique se o arquivo <strong>pages/${page}.html</strong> existe.</p>`;
         }
     }
-
     navLinks.forEach(link => {
         link.addEventListener('click', (event) => {
             const page = link.dataset.page;
@@ -269,7 +253,5 @@ document.addEventListener('DOMContentLoaded', () => {
             loadPage(page);
         });
     });
-
-    // Carregamento inicial
     document.querySelector('.nav-item.active').click();
 });
