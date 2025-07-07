@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal do Aluno</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+</head>
+<body>
+
+    <div class="portal-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h3>Academia de Artes</h3>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-page="dashboard">
+                    <span class="material-symbols-outlined">dashboard</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="nav-item" data-page="alunos">
+                    <span class="material-symbols-outlined">school</span>
+                    <span>Alunos</span>
+                </a>
+                <a href="#" class="nav-item" data-page="cursos">
+                    <span class="material-symbols-outlined">book</span>
+                    <span>Cursos</span>
+                </a>
+                <a href="#" class="nav-item" data-page="conteudo">
+                    <span class="material-symbols-outlined">upload_file</span>
+                    <span>Conteúdo</span>
+                </a>
+                <a href="#" class="nav-item" data-page="financeiro">
+                    <span class="material-symbols-outlined">paid</span>
+                    <span>Financeiro</span>
+                </a>
+                <a href="login.html" class="nav-item">
+                    <span class="material-symbols-outlined">logout</span>
+                    <span>Sair</span>
+                </a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            </main>
+    </div>
+
+    <div class="modal" id="modal-novo-curso">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h2>Adicionar Novo Curso</h2>
+                <button class="close-button">&times;</button>
+            </header>
+            <div class="modal-body">
+                <div class="form-group"><label for="curso-nome">Nome do Curso</label><input type="text" id="curso-nome" class="form-input" placeholder="Ex: Pintura a Óleo Avançada"></div>
+                <div class="form-group"><label for="curso-descricao">Descrição</label><textarea id="curso-descricao" class="form-input" rows="4" placeholder="Descreva os objetivos e o conteúdo do curso..."></textarea></div>
+            </div>
+            <footer class="modal-footer">
+                <button class="btn btn-secondary" data-action="cancel">Cancelar</button>
+                <button class="btn btn-primary" data-action="save-course">Salvar Curso</button>
+            </footer>
+        </div>
+    </div>
+
+    <div class="modal" id="modal-novo-aluno">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h2>Adicionar Novo Aluno</h2>
+                <button class="close-button">&times;</button>
+            </header>
+            <div class="modal-body">
+                <div class="form-group"><label for="aluno-nome">Nome Completo</label><input type="text" id="aluno-nome" class="form-input" placeholder="Digite o nome completo do aluno"></div>
+                <div class="form-group"><label for="aluno-email">Email</label><input type="email" id="aluno-email" class="form-input" placeholder="Ex: aluno@email.com"></div>
+                <div class="form-group">
+                    <label for="aluno-curso">Matricular no curso</label>
+                    <select id="aluno-curso" class="form-select">
+                        <option value="">Selecione um curso</option>
+                        <option value="Pintura em Tela">Pintura em Tela</option>
+                        <option value="Escultura em Argila">Escultura em Argila</option>
+                        <option value="Desenho Artístico">Desenho Artístico</option>
+                    </select>
+                </div>
+            </div>
+            <footer class="modal-footer">
+                <button class="btn btn-secondary" data-action="cancel">Cancelar</button>
+                <button class="btn btn-primary" data-action="save-aluno">Salvar Aluno</button>
+            </footer>
+        </div>
+    </div>
+
+    <div class="modal" id="modal-detalhes-curso">
+        <div class="modal-content">
+            <header class="modal-header"><h2 id="detalhes-curso-nome"></h2><button class="close-button">&times;</button></header>
+            <div class="modal-body">
+                <h4>Descrição do Curso</h4>
+                <p id="detalhes-curso-descricao"></p><hr>
+                <h4>Estatísticas</h4>
+                <p><strong>Alunos Matriculados:</strong> <span id="detalhes-curso-alunos">0</span></p>
+                <p><strong>Aulas Cadastradas:</strong> <span id="detalhes-curso-aulas">0</span></p>
+            </div>
+            <footer class="modal-footer">
+                <button class="btn btn-secondary" data-action="cancel">Fechar</button>
+            </footer>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
