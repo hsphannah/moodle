@@ -1,154 +1,49 @@
-// backend/server.js (VERSÃO FINAL E COMPLETA)
-
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const cors = require('cors');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const path = require('path');
 
 const app = express();
 const port = 3000;
+const saltRounds = 10;
+const JWT_SECRET = 'seu_segredo_super_secreto_e_dificil_de_adivinhar';
 
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-const db = new sqlite3.Database('./db.sqlite', (err) => {
-    if (err) {
-        return console.error("Erro ao abrir o banco de dados", err.message);
-    }
-    console.log("Conectado ao banco de dados SQLite.");
-
-    db.serialize(() => {
-        db.run('CREATE TABLE IF NOT EXISTS cursos (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, description TEXT)', (err) => {
-            if (err) { return console.error("Erro ao criar a tabela de cursos", err.message); }
-            console.log("Tabela 'cursos' pronta.");
-        });
-        db.run('CREATE TABLE IF NOT EXISTS alunos (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, course TEXT NOT NULL)', (err) => {
-            if (err) { return console.error("Erro ao criar a tabela de alunos", err.message); }
-            console.log("Tabela 'alunos' pronta.");
-        });
-    });
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => { cb(null, 'uploads/'); },
+    filename: (req, file, cb) => { cb(null, Date.now() + path.extname(file.originalname)); }
 });
+const upload = multer({ storage: storage });
 
-// ===============================================
-// API DE CURSOS (CRUD COMPLETO)
-// ===============================================
+const db = new sqlite3.Database('./db.sqlite', (err) => { if (err) { return console.error("Erro ao abrir o banco de dados", err.message); } console.log("Conectado ao banco de dados SQLite."); db.serialize(() => { db.run('CREATE TABLE IF NOT EXISTS cursos (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, description TEXT)'); db.run('CREATE TABLE IF NOT EXISTS alunos (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE)'); db.run(`CREATE TABLE IF NOT EXISTS inscricoes (id INTEGER PRIMARY KEY AUTOINCREMENT, aluno_id INTEGER NOT NULL, curso_id INTEGER NOT NULL, FOREIGN KEY (aluno_id) REFERENCES alunos (id), FOREIGN KEY (curso_id) REFERENCES cursos (id))`); db.run('CREATE TABLE IF NOT EXISTS admins (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL)'); db.run(`CREATE TABLE IF NOT EXISTS aulas (id INTEGER PRIMARY KEY AUTOINCREMENT, titulo TEXT NOT NULL, tipo TEXT NOT NULL, conteudo TEXT NOT NULL, curso_id INTEGER NOT NULL, FOREIGN KEY (curso_id) REFERENCES cursos (id))`); }); });
 
-// GET (TODOS)
-app.get('/api/cursos', (req, res) => {
-    const sql = "SELECT * FROM cursos ORDER BY name";
-    db.all(sql, [], (err, rows) => {
-        if (err) { res.status(500).json({ "error": err.message }); return; }
-        res.json({ message: "success", data: rows });
-    });
-});
+const authenticateToken = (req, res, next) => { const authHeader = req.headers['authorization']; const token = authHeader && authHeader.split(' ')[1]; if (token == null) return res.sendStatus(401); jwt.verify(token, JWT_SECRET, (err, user) => { if (err) return res.sendStatus(403); req.user = user; next(); }); };
 
-// GET (UM)
-app.get('/api/cursos/:id', (req, res) => {
-    const { id } = req.params;
-    const sql = "SELECT * FROM cursos WHERE id = ?";
-    db.get(sql, [id], (err, row) => {
-        if (err) { res.status(500).json({ "error": err.message }); return; }
-        if (!row) { return res.status(404).json({ message: "Curso não encontrado." }); }
-        res.json({ message: "success", data: row });
-    });
-});
+app.post('/api/register', (req, res) => { const { email, password } = req.body; if (!email || !password) { return res.status(400).json({ "error": "Email e senha são obrigatórios." }); } bcrypt.hash(password, saltRounds, (err, hash) => { if (err) { return res.status(500).json({ "error": "Erro ao processar a senha." }); } const sql = 'INSERT INTO admins (email, password_hash) VALUES (?, ?)'; db.run(sql, [email, hash], function(err) { if (err) { if (err.message.includes("UNIQUE constraint failed")) { return res.status(409).json({ "error": "Este email já está em uso." }); } return res.status(500).json({ "error": err.message }); } res.status(201).json({ message: "Administrador registrado com sucesso!", userId: this.lastID }); }); }); });
+app.post('/api/login', (req, res) => { const { email, password } = req.body; if (!email || !password) { return res.status(400).json({ "error": "Email e senha são obrigatórios." }); } const sql = 'SELECT * FROM admins WHERE email = ?'; db.get(sql, [email], (err, admin) => { if (err) { return res.status(500).json({ "error": err.message }); } if (!admin) { return res.status(401).json({ "error": "Credenciais inválidas." }); } bcrypt.compare(password, admin.password_hash, (err, result) => { if (result) { const payload = { id: admin.id, email: admin.email }; const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' }); res.json({ message: "Login bem-sucedido!", token: token }); } else { res.status(401).json({ "error": "Credenciais inválidas." }); } }); }); });
+app.post('/api/inscricoes', authenticateToken, (req, res) => { const { aluno_id, curso_id } = req.body; if (!aluno_id || !curso_id) { return res.status(400).json({ "error": "ID do aluno e do curso são obrigatórios." }); } const sql = 'INSERT INTO inscricoes (aluno_id, curso_id) VALUES (?, ?)'; db.run(sql, [aluno_id, curso_id], function(err) { if (err) { return res.status(500).json({ "error": err.message }); } res.status(201).json({ message: "Inscrição realizada com sucesso!", inscricaoId: this.lastID }); }); });
+app.get('/api/cursos', (req, res) => { const sql = "SELECT * FROM cursos ORDER BY name"; db.all(sql, [], (err, rows) => { if (err) { res.status(500).json({ "error": err.message }); return; } res.json({ message: "success", data: rows }); }); });
+app.get('/api/cursos/:id', (req, res) => { const { id } = req.params; const sql = "SELECT * FROM cursos WHERE id = ?"; db.get(sql, [id], (err, row) => { if (err) { res.status(500).json({ "error": err.message }); return; } if (!row) { return res.status(404).json({ message: "Curso não encontrado." }); } res.json({ message: "success", data: row }); }); });
+app.get('/api/cursos/:id/alunos', authenticateToken, (req, res) => { const { id } = req.params; const sql = `SELECT a.id, a.name, a.email FROM alunos a JOIN inscricoes i ON a.id = i.aluno_id WHERE i.curso_id = ?`; db.all(sql, [id], (err, rows) => { if (err) { res.status(500).json({ "error": err.message }); return; } res.json({ message: "success", data: rows }); }); });
+app.post('/api/cursos', authenticateToken, (req, res) => { const { name, description } = req.body; if (!name || !description) { return res.status(400).json({ "error": "Nome e descrição são obrigatórios." }); } const sql = 'INSERT INTO cursos (name, description) VALUES (?, ?)'; db.run(sql, [name, description], function(err) { if (err) { res.status(500).json({ "error": err.message }); return; } res.status(201).json({ message: "Curso criado com sucesso!", data: { id: this.lastID, name, description } }); }); });
+app.put('/api/cursos/:id', authenticateToken, (req, res) => { const { id } = req.params; const { name, description } = req.body; if (!name || !description) { return res.status(400).json({ "error": "Nome e descrição são obrigatórios." }); } const sql = 'UPDATE cursos SET name = ?, description = ? WHERE id = ?'; db.run(sql, [name, description, id], function(err) { if (err) { res.status(500).json({ "error": err.message }); return; } if (this.changes === 0) { return res.status(404).json({ message: "Curso não encontrado." }); } res.json({ message: "Curso atualizado com sucesso!", data: { id: id, name, description } }); }); });
+app.delete('/api/cursos/:id', authenticateToken, (req, res) => { const { id } = req.params; const sql = 'DELETE FROM cursos WHERE id = ?'; db.run(sql, id, function(err) { if (err) { res.status(500).json({ "error": err.message }); return; } if (this.changes === 0) { return res.status(404).json({ message: "Curso não encontrado." }); } res.json({ message: "Curso excluído com sucesso!", changes: this.changes }); }); });
+app.get('/api/alunos', authenticateToken, (req, res) => { const sql = "SELECT * FROM alunos ORDER BY name"; db.all(sql, [], (err, rows) => { if (err) { res.status(500).json({ "error": err.message }); return; } res.json({ message: "success", data: rows }); }); });
+app.get('/api/alunos/:id', authenticateToken, (req, res) => { const { id } = req.params; const sql = "SELECT * FROM alunos WHERE id = ?"; db.get(sql, [id], (err, row) => { if (err) { res.status(500).json({ "error": err.message }); return; } if (!row) { return res.status(404).json({ message: "Aluno não encontrado." }); } res.json({ message: "success", data: row }); }); });
+app.get('/api/alunos/:id/cursos', authenticateToken, (req, res) => { const { id } = req.params; const sql = `SELECT c.id, c.name, c.description FROM cursos c JOIN inscricoes i ON c.id = i.curso_id WHERE i.aluno_id = ?`; db.all(sql, [id], (err, rows) => { if (err) { res.status(500).json({ "error": err.message }); return; } res.json({ message: "success", data: rows }); }); });
+app.post('/api/alunos', authenticateToken, (req, res) => { const { name, email, curso_id } = req.body; if (!name || !email) { return res.status(400).json({ "error": "Nome e email são obrigatórios." }); } const sqlAluno = 'INSERT INTO alunos (name, email) VALUES (?, ?)'; db.run(sqlAluno, [name, email], function(err) { if (err) { return res.status(500).json({ "error": err.message }); } const novoAlunoId = this.lastID; if (curso_id) { const sqlInscricao = 'INSERT INTO inscricoes (aluno_id, curso_id) VALUES (?, ?)'; db.run(sqlInscricao, [novoAlunoId, curso_id], (err) => { if (err) { return res.status(500).json({ "error": "Aluno criado, mas falha ao inscrever no curso." }); } res.status(201).json({ message: "Aluno e inscrição criados com sucesso!", data: { id: novoAlunoId, name, email } }); }); } else { res.status(201).json({ message: "Aluno criado com sucesso!", data: { id: novoAlunoId, name, email } }); } }); });
+app.put('/api/alunos/:id', authenticateToken, (req, res) => { const { id } = req.params; const { name, email } = req.body; if (!name || !email ) { return res.status(400).json({ "error": "Nome e email são obrigatórios." }); } const sql = 'UPDATE alunos SET name = ?, email = ? WHERE id = ?'; db.run(sql, [name, email, id], function(err) { if (err) { res.status(500).json({ "error": err.message }); return; } if (this.changes === 0) { return res.status(404).json({ message: "Aluno não encontrado." }); } res.json({ message: "Aluno atualizado com sucesso!", data: { id: id, name, email } }); }); });
+app.delete('/api/alunos/:id', authenticateToken, (req, res) => { const { id } = req.params; const sql = 'DELETE FROM alunos WHERE id = ?'; db.run(sql, id, function(err) { if (err) { res.status(500).json({ "error": err.message }); return; } const sqlInscricoes = 'DELETE FROM inscricoes WHERE aluno_id = ?'; db.run(sqlInscricoes, id); res.json({ message: "Aluno excluído com sucesso!", changes: this.changes }); }); });
+app.get('/api/aulas/:id', authenticateToken, (req, res) => { const { id } = req.params; db.get("SELECT * FROM aulas WHERE id = ?", [id], (err, row) => { if (err) { return res.status(500).json({ error: err.message }); } if (!row) { return res.status(404).json({ message: "Aula não encontrada." }); } res.json({ message: "Aula encontrada com sucesso", data: row }); }); });
+app.get('/api/cursos/:curso_id/aulas', authenticateToken, (req, res) => { const { curso_id } = req.params; const sql = "SELECT * FROM aulas WHERE curso_id = ?"; db.all(sql, [curso_id], (err, rows) => { if (err) { return res.status(500).json({ error: err.message }); } res.json({ message: "Aulas listadas com sucesso", data: rows }); }); });
+app.post('/api/aulas', authenticateToken, upload.single('conteudo'), (req, res) => { const { titulo, tipo, curso_id } = req.body; let conteudo = req.file ? `/uploads/${req.file.filename}` : req.body.conteudo; if (!titulo || !tipo || !conteudo || !curso_id) { return res.status(400).json({ error: "Todos os campos são obrigatórios." }); } const sql = "INSERT INTO aulas (titulo, tipo, conteudo, curso_id) VALUES (?, ?, ?, ?)"; db.run(sql, [titulo, tipo, conteudo, curso_id], function(err) { if (err) { return res.status(500).json({ error: err.message }); } res.status(201).json({ message: "Aula criada com sucesso", data: { id: this.lastID } }); }); });
+app.put('/api/aulas/:id', authenticateToken, upload.single('conteudo'), (req, res) => { const { id } = req.params; const { titulo, tipo } = req.body; let conteudo = req.body.conteudo; if (req.file) { conteudo = `/uploads/${req.file.filename}`; } if (!titulo || !tipo || !conteudo) { return res.status(400).json({ error: "Todos os campos são obrigatórios." }); } const sql = "UPDATE aulas SET titulo = ?, tipo = ?, conteudo = ? WHERE id = ?"; db.run(sql, [titulo, tipo, conteudo, id], function(err) { if (err) { return res.status(500).json({ error: err.message }); } if (this.changes === 0) { return res.status(404).json({ message: "Aula não encontrada." }); } res.json({ message: "Aula atualizada com sucesso" }); }); });
+app.delete('/api/aulas/:id', authenticateToken, (req, res) => { const { id } = req.params; const sql = "DELETE FROM aulas WHERE id = ?"; db.run(sql, [id], function(err) { if (err) { return res.status(500).json({ error: err.message }); } if (this.changes === 0) { return res.status(404).json({ message: "Aula não encontrada." }); } res.json({ message: "Aula excluída com sucesso" }); }); });
 
-// POST
-app.post('/api/cursos', (req, res) => {
-    const { name, description } = req.body;
-    if (!name || !description) { return res.status(400).json({ "error": "Nome e descrição são obrigatórios." }); }
-    const sql = 'INSERT INTO cursos (name, description) VALUES (?, ?)';
-    db.run(sql, [name, description], function(err) {
-        if (err) { res.status(500).json({ "error": err.message }); return; }
-        res.status(201).json({ message: "Curso criado com sucesso!", data: { id: this.lastID, name, description } });
-    });
-});
-
-// PUT
-app.put('/api/cursos/:id', (req, res) => {
-    const { id } = req.params;
-    const { name, description } = req.body;
-    if (!name || !description) { return res.status(400).json({ "error": "Nome e descrição são obrigatórios." }); }
-    const sql = 'UPDATE cursos SET name = ?, description = ? WHERE id = ?';
-    db.run(sql, [name, description, id], function(err) {
-        if (err) { res.status(500).json({ "error": err.message }); return; }
-        if (this.changes === 0) { return res.status(404).json({ message: "Curso não encontrado." }); }
-        res.json({ message: "Curso atualizado com sucesso!", data: { id: id, name, description } });
-    });
-});
-
-// DELETE
-app.delete('/api/cursos/:id', (req, res) => {
-    const { id } = req.params;
-    const sql = 'DELETE FROM cursos WHERE id = ?';
-    db.run(sql, id, function(err) {
-        if (err) { res.status(500).json({ "error": err.message }); return; }
-        if (this.changes === 0) { return res.status(404).json({ message: "Curso não encontrado." }); }
-        res.json({ message: "Curso excluído com sucesso!", changes: this.changes });
-    });
-});
-
-
-// ===============================================
-// API DE ALUNOS (CRUD COMPLETO)
-// ===============================================
-
-// GET (TODOS)
-app.get('/api/alunos', (req, res) => {
-    const sql = "SELECT * FROM alunos ORDER BY name";
-    db.all(sql, [], (err, rows) => {
-        if (err) { res.status(500).json({ "error": err.message }); return; }
-        res.json({ message: "success", data: rows });
-    });
-});
-
-// GET (UM)
-app.get('/api/alunos/:id', (req, res) => {
-    const { id } = req.params;
-    const sql = "SELECT * FROM alunos WHERE id = ?";
-    db.get(sql, [id], (err, row) => {
-        if (err) { res.status(500).json({ "error": err.message }); return; }
-        if (!row) { return res.status(404).json({ message: "Aluno não encontrado." }); }
-        res.json({ message: "success", data: row });
-    });
-});
-
-// POST
-app.post('/api/alunos', (req, res) => {
-    const { name, email, course } = req.body;
-    if (!name || !email || !course) { return res.status(400).json({ "error": "Nome, email e curso são obrigatórios." }); }
-    const sql = 'INSERT INTO alunos (name, email, course) VALUES (?, ?, ?)';
-    db.run(sql, [name, email, course], function(err) {
-        if (err) { res.status(500).json({ "error": err.message }); return; }
-        res.status(201).json({ message: "Aluno criado com sucesso!", data: { id: this.lastID, name, email, course } });
-    });
-});
-
-// PUT
-app.put('/api/alunos/:id', (req, res) => {
-    const { id } = req.params;
-    const { name, email, course } = req.body;
-    if (!name || !email || !course) { return res.status(400).json({ "error": "Nome, email e curso são obrigatórios." }); }
-    const sql = 'UPDATE alunos SET name = ?, email = ?, course = ? WHERE id = ?';
-    db.run(sql, [name, email, course, id], function(err) {
-        if (err) { res.status(500).json({ "error": err.message }); return; }
-        if (this.changes === 0) { return res.status(404).json({ message: "Aluno não encontrado." }); }
-        res.json({ message: "Aluno atualizado com sucesso!", data: { id: id, name, email, course } });
-    });
-});
-
-// DELETE
-app.delete('/api/alunos/:id', (req, res) => {
-    const { id } = req.params;
-    const sql = 'DELETE FROM alunos WHERE id = ?';
-    db.run(sql, id, function(err) {
-        if (err) { res.status(500).json({ "error": err.message }); return; }
-        if (this.changes === 0) { return res.status(404).json({ message: "Aluno não encontrado." }); }
-        res.json({ message: "Aluno excluído com sucesso!", changes: this.changes });
-    });
-});
-
-
-// Inicia o servidor
-app.listen(port, () => {
-    console.log(`Servidor rodando em http://localhost:${port}`);
-});
+app.listen(port, () => { console.log(`Servidor rodando em http://localhost:${port}`); });

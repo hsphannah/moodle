@@ -748,3 +748,19 @@ body {
     align-items: center;
     gap: 10px;
 }
+/* Estilos para a lista de aulas na página de conteúdo */
+.lesson-list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background-color: #ffffff;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.lesson-actions {
+    display: flex;
+    gap: 10px;
+}

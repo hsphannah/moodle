@@ -1,0 +1,162 @@
+/* portal.css */
+
+/* Importando a fonte e reset básico */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* ========================================= */
+/* NOVIDADE: Central de Comando das Cores   */
+/* ========================================= */
+:root {
+    --cor-primaria: #e5383b;      /* Vermelho para destaques e botões */
+    --cor-fundo-sidebar: #212529; /* Preto suave para a barra lateral */
+    --cor-fundo-pagina: #f4f4f5;  /* Cinza muito claro para o fundo geral */
+    --cor-fundo-card: #ffffff;   /* Branco para os cards e áreas de conteúdo */
+    --cor-texto-principal: #212529; /* Preto suave para textos principais */
+    --cor-texto-sidebar: #ced4da; /* Cinza claro para texto na sidebar */
+    --cor-texto-hover: #ffffff;    /* Texto branco ao passar o mouse */
+    --cor-borda: #dee2e6;         /* Cinza para as bordas e divisórias */
+}
+
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--cor-fundo-pagina); /* Usa a variável */
+    color: var(--cor-texto-principal);          /* Usa a variável */
+}
+
+/* Container principal com Flexbox */
+.student-portal-container {
+    display: flex;
+}
+
+/* Barra Lateral */
+.student-sidebar {
+    width: 260px;
+    background-color: var(--cor-fundo-sidebar); /* Usa a variável */
+    color: var(--cor-texto-sidebar);            /* Usa a variável */
+    min-height: 100vh;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-logo {
+    text-align: center;
+    padding: 10px 0;
+    margin-bottom: 30px;
+    font-size: 1.5rem;
+    color: var(--cor-texto-hover); /* Usa a variável */
+}
+
+.sidebar-nav ul {
+    list-style: none;
+}
+
+.sidebar-nav .nav-item a {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px 20px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: inherit;
+    font-weight: 500;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.sidebar-nav .nav-item a:hover {
+    background-color: #343a40; /* Um pouco mais claro que o fundo para o hover */
+    color: var(--cor-texto-hover); /* Usa a variável */
+}
+
+.sidebar-nav .nav-item.active a {
+    background-color: var(--cor-primaria); /* Usa a variável */
+    color: var(--cor-texto-hover);         /* Usa a variável */
+}
+
+/* Rodapé da Sidebar */
+.sidebar-footer {
+    margin-top: auto;
+}
+.sidebar-footer .nav-item a {
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    text-decoration: none;
+    color: inherit;
+    border-radius: 8px;
+}
+.sidebar-footer .nav-item a:hover {
+    background-color: #343a40;
+    color: var(--cor-texto-hover);
+}
+
+
+/* Conteúdo Principal */
+.student-content {
+    flex-grow: 1;
+    padding: 30px;
+}
+
+.content-header {
+    margin-bottom: 30px;
+}
+.content-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+/* Grade de Cursos */
+.course-cards-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 25px;
+}
+
+.course-card {
+    background-color: var(--cor-fundo-card); /* Usa a variável */
+    border: 1px solid var(--cor-borda);       /* Usa a variável */
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.course-card-body {
+    padding: 20px;
+    flex-grow: 1;
+}
+.course-card-body h2 {
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+}
+.course-card-body p {
+    font-size: 0.9rem;
+    color: #6c757d; /* Um cinza para texto secundário */
+    line-height: 1.5;
+}
+.course-card-footer {
+    padding: 15px 20px;
+    border-top: 1px solid var(--cor-borda);
+}
+.course-card-footer .btn-primary {
+    width: 100%;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    background-color: var(--cor-primaria); /* Usa a variável */
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.course-card-footer .btn-primary:hover {
+    opacity: 0.85;
+}

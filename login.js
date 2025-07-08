@@ -1,15 +1,36 @@
+// login.js
+
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
+    const errorMessage = document.getElementById('error-message');
 
-    loginForm.addEventListener('submit', (event) => {
-        // 1. Impede o comportamento padrão do formulário (que é recarregar a página)
+    loginForm.addEventListener('submit', async (event) => {
         event.preventDefault();
+        errorMessage.textContent = '';
 
-        // 2. Aqui, em um projeto real, você enviaria os dados para um servidor.
-        // Como estamos apenas no front-end, vamos pular direto para o redirecionamento.
-        console.log('Formulário enviado! Redirecionando...');
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
 
-        // 3. Redireciona o usuário para a página principal do portal
-        window.location.href = 'index.html';
+        try {
+            const response = await fetch('http://localhost:3000/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            });
+
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.error || 'Ocorreu um erro.');
+            }
+            
+            if (result.token) {
+                localStorage.setItem('adminToken', result.token);
+                window.location.href = 'index.html';
+            }
+
+        } catch (error) {
+            console.error('Falha no login:', error);
+            errorMessage.textContent = error.message;
+        }
     });
 });

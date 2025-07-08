@@ -104,3 +104,11 @@ body {
 .btn-login:hover {
     background-color: #c02d30;
 }
+/* em login.css */
+.error-text {
+    color: #e5383b; /* Vermelho */
+    text-align: center;
+    min-height: 20px;
+    margin-bottom: 15px;
+    font-weight: 500;
+}
