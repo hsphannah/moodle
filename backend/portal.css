@@ -160,3 +160,138 @@ body {
 .course-card-footer .btn-primary:hover {
     opacity: 0.85;
 }
+.student-selector-bar {
+    background-color: #fff;
+    padding: 10px 40px;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+.student-selector-bar label {
+    font-weight: 600;
+}
+.student-selector-bar .form-select {
+    padding: 8px;
+    min-width: 250px;
+    border-radius: 6px;
+    border-color: #ccc;
+}
+/* Estilos para a página de progresso */
+.progress-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
+
+.progress-card {
+    background-color: #fff;
+    padding: 25px;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+.progress-card h3 {
+    margin-bottom: 15px;
+}
+
+.progress-bar-wrapper {
+    background-color: #e9ecef;
+    border-radius: 10px;
+    height: 12px;
+    margin-bottom: 10px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: var(--cor-primaria);
+    border-radius: 10px;
+    transition: width 0.5s ease-in-out;
+}
+
+.progress-details {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+/* em portal.css */
+.progress-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
+.progress-card {
+    background-color: var(--cor-fundo-card);
+    padding: 25px;
+    border-radius: 8px;
+    border: 1px solid var(--cor-borda);
+}
+.progress-card h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+}
+.progress-bar-wrapper {
+    background-color: #e9ecef;
+    border-radius: 10px;
+    height: 12px;
+    margin-bottom: 10px;
+    overflow: hidden;
+}
+.progress-bar {
+    height: 100%;
+    background-color: var(--cor-primaria);
+    border-radius: 10px;
+    transition: width 0.5s ease-in-out;
+}
+.progress-details {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+/* Estilos para o conteúdo da aula (acordeão) */
+.lesson-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    cursor: pointer;
+}
+
+.lesson-list-item {
+    flex-wrap: wrap; /* Permite que o conteúdo quebre a linha */
+}
+
+.lesson-item-content {
+    display: none; /* Começa escondido por padrão */
+    width: 100%;
+    padding: 20px;
+    margin-top: 15px;
+    border-top: 1px solid var(--cor-borda);
+    background-color: #fafafa;
+}
+
+.lesson-item-content p {
+    line-height: 1.6;
+}
+
+/* Estilos para o vídeo incorporado */
+.video-container {
+    position: relative;
+    padding-bottom: 56.25%; /* Proporção de 16:9 */
+    height: 0;
+    overflow: hidden;
+    max-width: 100%;
+    background: #000;
+}
+
+.video-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}

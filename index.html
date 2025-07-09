@@ -12,30 +12,12 @@
         <aside class="sidebar">
             <div class="sidebar-header"><h3>Academia de Artes</h3></div>
             <nav class="sidebar-nav">
-                <a href="#" class="nav-item active" data-page="dashboard">
-                    <span class="material-symbols-outlined">dashboard</span>
-                    <span>Dashboard</span>
-                </a>
-                <a href="#" class="nav-item" data-page="alunos">
-                    <span class="material-symbols-outlined">school</span>
-                    <span>Alunos</span>
-                </a>
-                <a href="#" class="nav-item" data-page="cursos">
-                    <span class="material-symbols-outlined">book</span>
-                    <span>Cursos</span>
-                </a>
-                <a href="#" class="nav-item" data-page="conteudo">
-                    <span class="material-symbols-outlined">upload_file</span>
-                    <span>Conteúdo</span>
-                </a>
-                <a href="#" class="nav-item" data-page="financeiro">
-                    <span class="material-symbols-outlined">paid</span>
-                    <span>Financeiro</span>
-                </a>
-                <a href="login.html" class="nav-item">
-                    <span class="material-symbols-outlined">logout</span>
-                    <span>Sair</span>
-                </a>
+                <a href="#" class="nav-item active" data-page="dashboard"><span class="material-symbols-outlined">dashboard</span><span>Dashboard</span></a>
+                <a href="#" class="nav-item" data-page="alunos"><span class="material-symbols-outlined">school</span><span>Alunos</span></a>
+                <a href="#" class="nav-item" data-page="cursos"><span class="material-symbols-outlined">book</span><span>Cursos</span></a>
+                <a href="#" class="nav-item" data-page="conteudo"><span class="material-symbols-outlined">upload_file</span><span>Conteúdo</span></a>
+                <a href="#" class="nav-item" data-page="financeiro"><span class="material-symbols-outlined">paid</span><span>Financeiro</span></a>
+                <a href="login.html" class="nav-item"><span class="material-symbols-outlined">logout</span><span>Sair</span></a>
             </nav>
         </aside>
         <main class="main-content"></main>
@@ -51,6 +33,7 @@
             <footer class="modal-footer"><button class="btn btn-secondary" data-action="cancel">Cancelar</button><button class="btn btn-primary" data-action="save-course">Salvar Curso</button></footer>
         </div>
     </div>
+
     <div class="modal" id="modal-novo-aluno">
         <div class="modal-content">
             <header class="modal-header"><h2>Adicionar Novo Aluno</h2><button class="close-button">&times;</button></header>
@@ -62,6 +45,7 @@
             <footer class="modal-footer"><button class="btn btn-secondary" data-action="cancel">Cancelar</button><button class="btn btn-primary" data-action="save-aluno">Salvar Aluno</button></footer>
         </div>
     </div>
+
     <div class="modal" id="modal-detalhes-curso">
         <div class="modal-content">
             <header class="modal-header"><h2 id="detalhes-curso-nome"></h2><button class="close-button">&times;</button></header>
@@ -72,6 +56,7 @@
             <footer class="modal-footer"><button class="btn btn-secondary" data-action="cancel">Fechar</button></footer>
         </div>
     </div>
+
     <div class="modal" id="modal-nova-aula">
         <div class="modal-content">
             <header class="modal-header"><h2>Adicionar Nova Aula</h2><button class="close-button">&times;</button></header>
@@ -80,7 +65,10 @@
                 <div class="form-group"><label for="aula-tipo">Tipo de Conteúdo</label><select id="aula-tipo" class="form-select"><option value="Vídeo">Vídeo (colar link)</option><option value="Texto">Texto</option><option value="PDF">PDF (fazer upload)</option><option value="Imagem">Imagem (fazer upload)</option></select></div>
                 <div class="form-group"><label for="aula-conteudo-texto">Conteúdo</label><textarea id="aula-conteudo-texto" class="form-input" rows="4" placeholder="Cole a URL do vídeo ou digite o texto..."></textarea><input type="file" id="aula-conteudo-arquivo" class="form-input" style="display: none;"></div>
             </div>
-            <footer class="modal-footer"><button class="btn btn-secondary" data-action="cancel">Cancelar</button><button class="btn btn-primary" data-action="save-aula">Salvar Aula</button></footer>
+            <footer class="modal-footer">
+                <button class="btn btn-secondary" data-action="cancel">Cancelar</button>
+                <button class="btn btn-primary" data-action="save-aula">Salvar Aula</button>
+            </footer>
         </div>
     </div>
 

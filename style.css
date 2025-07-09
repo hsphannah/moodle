@@ -748,19 +748,62 @@ body {
     align-items: center;
     gap: 10px;
 }
-/* Estilos para a lista de aulas na página de conteúdo */
+
+/* Estilos para a barra de seleção de aluno */
+.student-selector-bar {
+    background-color: #fff;
+    padding: 10px 40px;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+.student-selector-bar label {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+.student-selector-bar .form-select {
+    padding: 8px 12px;
+    min-width: 250px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    background-color: #f8f9fa;
+}
+/* ========================================= */
+/* Estilos para a Lista de Aulas (Conteúdo)  */
+/* ========================================= */
+
+#lessons-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px; /* Espaço entre os itens da lista */
+}
+
 .lesson-list-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px;
+    padding: 20px;
     background-color: #ffffff;
     border: 1px solid #e9ecef;
     border-radius: 8px;
-    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    transition: box-shadow 0.2s;
+}
+
+.lesson-list-item:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.lesson-list-item span {
+    font-weight: 500;
 }
 
 .lesson-actions {
     display: flex;
+    align-items: center;
     gap: 10px;
 }
