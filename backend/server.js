@@ -65,6 +65,11 @@ const authenticateToken = (req, res, next) => {
 // == TODAS AS ROTAS DE API VÊM AQUI AGORA ==
 // ===========================================
 
+// Rota para verificação de saúde do Render
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'ok' });
+});
+
 // == AUTENTICAÇÃO E ADMIN ==
 app.post('/api/register', async (req, res) => {
     try {
