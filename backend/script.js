@@ -168,7 +168,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const alunoNameInput = document.getElementById('aluno-nome');
         const alunoEmailInput = document.getElementById('aluno-email');
         const alunoCourseSelect = document.getElementById('aluno-curso');
-        const alunoData = { name: alunoNameInput.value, email: alunoEmailInput.value, curso_id: alunoCourseSelect.value ? parseInt(alunoCourseSelect.value, 10) : null };
+        const alunoSenhaInput = document.getElementById('aluno-senha');
+const alunoData = {
+    name: alunoNameInput.value,
+    email: alunoEmailInput.value,
+    password: alunoSenhaInput.value, // Adicionamos a senha
+    curso_id: alunoCourseSelect.value ? parseInt(alunoCourseSelect.value, 10) : null
+};
         if (!alunoData.name || !alunoData.email) {
             alert('Preencha nome e email.');
             return;

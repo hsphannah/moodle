@@ -51,7 +51,7 @@ const upload = multer({ storage });
 const createTables = async () => {
     const queryText = `
     CREATE TABLE IF NOT EXISTS cursos (id SERIAL PRIMARY KEY, name TEXT NOT NULL, description TEXT);
-    CREATE TABLE IF NOT EXISTS alunos (id SERIAL PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE);
+    CREATE TABLE IF NOT EXISTS alunos (id SERIAL PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS admins (id SERIAL PRIMARY KEY, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS inscricoes (id SERIAL PRIMARY KEY, aluno_id INTEGER NOT NULL REFERENCES alunos(id) ON DELETE CASCADE, curso_id INTEGER NOT NULL REFERENCES cursos(id) ON DELETE CASCADE, UNIQUE(aluno_id, curso_id));
     CREATE TABLE IF NOT EXISTS aulas (id SERIAL PRIMARY KEY, titulo TEXT NOT NULL, tipo TEXT NOT NULL, conteudo TEXT NOT NULL, curso_id INTEGER NOT NULL REFERENCES cursos(id) ON DELETE CASCADE);
@@ -192,43 +192,32 @@ app.delete('/api/cursos/:id', authenticateToken, async (req, res) => {
 
 
 // == ALUNOS ==
-app.get('/api/alunos', authenticateToken, async (req, res) => {
-    try {
-        const result = await pool.query("SELECT * FROM alunos ORDER BY name");
-        res.json({ message: "success", data: result.rows });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Erro interno do servidor." });
-    }
-});
-
-app.get('/api/alunos/:id', authenticateToken, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const result = await pool.query("SELECT * FROM alunos WHERE id = $1", [id]);
-        if (result.rowCount === 0) return res.status(404).json({ message: "Aluno não encontrado." });
-        res.json({ message: "success", data: result.rows[0] });
-    } catch(err) {
-        console.error(err);
-        res.status(500).json({ error: "Erro interno do servidor." });
-    }
-});
-
 app.post('/api/alunos', authenticateToken, async (req, res) => {
-    const { name, email, curso_id } = req.body;
-    if (!name || !email) return res.status(400).json({ error: "Nome e email são obrigatórios." });
+    // Agora recebemos a senha do front-end
+    const { name, email, password, curso_id } = req.body;
+    if (!name || !email || !password) {
+        return res.status(400).json({ error: "Nome, email e senha são obrigatórios." });
+    }
+
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
-        const alunoSql = 'INSERT INTO alunos (name, email) VALUES ($1, $2) RETURNING id';
-        const alunoResult = await client.query(alunoSql, [name, email]);
+
+        // Criptografa a senha antes de salvar
+        const hash = await bcrypt.hash(password, saltRounds);
+
+        const alunoSql = 'INSERT INTO alunos (name, email, password_hash) VALUES ($1, $2, $3) RETURNING id';
+        const alunoResult = await client.query(alunoSql, [name, email, hash]);
         const novoAlunoId = alunoResult.rows[0].id;
+
         if (curso_id) {
             const inscricaoSql = 'INSERT INTO inscricoes (aluno_id, curso_id) VALUES ($1, $2)';
             await client.query(inscricaoSql, [novoAlunoId, curso_id]);
         }
+
         await client.query('COMMIT');
         res.status(201).json({ message: "Aluno criado com sucesso!", data: { id: novoAlunoId, name, email } });
+
     } catch (err) {
         await client.query('ROLLBACK');
         console.error(err);
@@ -236,34 +225,6 @@ app.post('/api/alunos', authenticateToken, async (req, res) => {
         res.status(500).json({ error: "Erro interno do servidor." });
     } finally {
         client.release();
-    }
-});
-
-app.put('/api/alunos/:id', authenticateToken, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { name, email } = req.body;
-        if (!name || !email) return res.status(400).json({ error: "Nome e email são obrigatórios." });
-        const sql = 'UPDATE alunos SET name = $1, email = $2 WHERE id = $3 RETURNING *';
-        const result = await pool.query(sql, [name, email, id]);
-        if (result.rowCount === 0) return res.status(404).json({ message: "Aluno não encontrado." });
-        res.json({ message: "Aluno atualizado com sucesso!", data: result.rows[0] });
-    } catch (err) {
-        console.error(err);
-        if (err.code === '23505') return res.status(409).json({ error: "Este email já está em uso." });
-        res.status(500).json({ error: "Erro interno do servidor." });
-    }
-});
-
-app.delete('/api/alunos/:id', authenticateToken, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const result = await pool.query('DELETE FROM alunos WHERE id = $1', [id]);
-        if (result.rowCount === 0) return res.status(404).json({ message: "Aluno não encontrado." });
-        res.json({ message: "Aluno e todos os seus dados associados foram excluídos com sucesso!" });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Erro interno do servidor." });
     }
 });
 
@@ -423,6 +384,35 @@ app.get('/api/alunos/:id/progresso', authenticateToken, async (req, res) => {
         `;
         const result = await pool.query(sql, [id, id]);
         res.json({ message: "Progresso do aluno", data: result.rows });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Erro interno do servidor." });
+    }
+});
+app.post('/api/alunos/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        if (!email || !password) {
+            return res.status(400).json({ error: "Email e senha são obrigatórios." });
+        }
+
+        const sql = 'SELECT * FROM alunos WHERE email = $1';
+        const result = await pool.query(sql, [email]);
+        const aluno = result.rows[0];
+
+        if (!aluno) {
+            return res.status(401).json({ error: "Credenciais inválidas." });
+        }
+
+        const match = await bcrypt.compare(password, aluno.password_hash);
+        if (match) {
+            // Criamos um token específico para o aluno
+            const payload = { id: aluno.id, email: aluno.email, role: 'student' };
+            const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
+            res.json({ message: "Login bem-sucedido!", token: token, userType: 'student' });
+        } else {
+            res.status(401).json({ error: "Credenciais inválidas." });
+        }
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Erro interno do servidor." });

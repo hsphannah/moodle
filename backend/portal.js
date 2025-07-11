@@ -10,22 +10,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const getToken = () => localStorage.getItem('adminToken');
 
-    // ===============================================
-    // FUNÇÕES DE AÇÃO DO ALUNO
-    // ===============================================
-    const handleEnrollment = async (courseId) => {
-        if (!currentAlunoId) { alert("Por favor, selecione um aluno no menu superior."); return; }
-        const token = getToken();
-        if (!token) { alert('Token de autenticação não encontrado.'); return; }
+      // ========================
+    // FUNÇÕES DE AÇÃO DO ALUNO 
+    // ==========================
 
+    const handleEnrollment = async (courseId) => {
         try {
-            const response = await fetch('/api/inscricoes', { // CORRIGIDO
+            const response = await fetch('/api/inscricoes', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ aluno_id: currentAlunoId, curso_id: courseId })
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${studentToken}` },
+                // O backend usará o ID do token, mas enviamos o ID do aluno por segurança
+                body: JSON.stringify({ aluno_id: studentId, curso_id: courseId })
             });
             const result = await response.json();
-            if (!response.ok) { throw new Error(result.message || 'Não foi possível realizar a inscrição.'); }
+            if (!response.ok) throw new Error(result.message || 'Não foi possível realizar a inscrição.');
             alert(result.message);
             document.querySelector('[data-view="meus-cursos"]')?.click();
         } catch (error) {
@@ -35,15 +33,11 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
     const handleMarkLessonComplete = async (aulaId, cursoId, cursoNome) => {
-        if (!currentAlunoId) { alert("Por favor, selecione um aluno."); return; }
-        const token = getToken();
-        if (!token) { alert('Token de autenticação não encontrado.'); return; }
-
         try {
-            await fetch('/api/progresso', { // CORRIGIDO
+            await fetch('/api/progresso', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ aluno_id: currentAlunoId, aula_id: aulaId })
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${studentToken}` },
+                body: JSON.stringify({ aluno_id: studentId, aula_id: aulaId })
             });
             renderCourseLessons(cursoId, cursoNome);
         } catch (error) {
@@ -181,9 +175,4 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    // ... O resto do seu arquivo (event listeners e inicialização) pode continuar igual,
-    // pois já estava correto e sem URLs fixas.
-    // Colei apenas as funções que precisavam de alteração para o arquivo não ficar gigante.
-    // O ideal é você usar o "Localizar e Substituir" (Ctrl+H) no seu editor e trocar
-    // 'http://localhost:3000' por '' (nada) em todo o arquivo.
 });
