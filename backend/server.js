@@ -200,38 +200,40 @@ app.delete('/api/cursos/:id', authenticateToken, async (req, res) => {
 
 // == ALUNOS ==
 app.post('/api/alunos', authenticateToken, async (req, res) => {
-    // Agora recebemos a senha do front-end
+    // Agora o backend espera receber nome, email e SENHA
     const { name, email, password, curso_id } = req.body;
     if (!name || !email || !password) {
         return res.status(400).json({ error: "Nome, email e senha são obrigatórios." });
     }
-
+    
     const client = await pool.connect();
     try {
-        await client.query('BEGIN');
+        await client.query('BEGIN'); // Inicia a transação
 
-        // Criptografa a senha antes de salvar
+        // Criptografa a senha recebida antes de salvar
         const hash = await bcrypt.hash(password, saltRounds);
 
+        // Insere o aluno com o hash da senha
         const alunoSql = 'INSERT INTO alunos (name, email, password_hash) VALUES ($1, $2, $3) RETURNING id';
         const alunoResult = await client.query(alunoSql, [name, email, hash]);
         const novoAlunoId = alunoResult.rows[0].id;
 
+        // Se um curso foi selecionado, inscreve o aluno
         if (curso_id) {
             const inscricaoSql = 'INSERT INTO inscricoes (aluno_id, curso_id) VALUES ($1, $2)';
             await client.query(inscricaoSql, [novoAlunoId, curso_id]);
         }
 
-        await client.query('COMMIT');
+        await client.query('COMMIT'); // Confirma a transação
         res.status(201).json({ message: "Aluno criado com sucesso!", data: { id: novoAlunoId, name, email } });
 
     } catch (err) {
-        await client.query('ROLLBACK');
+        await client.query('ROLLBACK'); // Desfaz tudo em caso de erro
         console.error(err);
         if (err.code === '23505') return res.status(409).json({ error: "Este email já está em uso." });
         res.status(500).json({ error: "Erro interno do servidor." });
     } finally {
-        client.release();
+        client.release(); // Libera o cliente de volta para o pool
     }
 });
 
