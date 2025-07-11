@@ -10,13 +10,6 @@ const { Pool } = require('pg');
 
 require('dotenv').config();
 
-// =======================================================
-// ADICIONE ESTAS DUAS LINHAS DE TESTE AQUI
-console.log('--- INICIANDO TESTE DE DIAGNÓSTICO ---');
-console.log('Valor da DATABASE_URL lido pelo servidor:', process.env.DATABASE_URL);
-// FIM DO TESTE
-// =======================================================
-
 const app = express();
 const port = process.env.PORT || 3000;
 const saltRounds = 10;
@@ -65,7 +58,7 @@ const authenticateToken = (req, res, next) => {
 // == TODAS AS ROTAS DE API VÊM AQUI AGORA ==
 // ===========================================
 
-// Rota para verificação de saúde do Render
+// == Rota de Health Check para o Render ==
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok' });
 });
@@ -90,37 +83,32 @@ app.post('/api/login', async (req, res) => {
     try {
         const { email, password } = req.body;
         if (!email || !password) return res.status(400).json({ error: "Email e senha são obrigatórios." });
-        const result = await pool.query('SELECT * FROM admins WHERE email = $1', [email]);
-        const admin = result.rows[0];
-        if (!admin) return res.status(401).json({ error: "Credenciais inválidas." });
-        const match = await bcrypt.compare(password, admin.password_hash);
-        if (match) {
-            const payload = { id: admin.id, email: admin.email, role: 'admin' };
-            const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
-            res.json({ message: "Login bem-sucedido!", token: token });
-        } else {
-            res.status(401).json({ error: "Credenciais inválidas." });
-        }
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Erro interno do servidor." });
-    }
-});
+        
+        // Tenta como admin primeiro
+        const adminResult = await pool.query('SELECT * FROM admins WHERE email = $1', [email]);
+        const admin = adminResult.rows[0];
 
-app.post('/api/alunos/login', async (req, res) => {
-    try {
-        const { email, password } = req.body;
-        if (!email || !password) return res.status(400).json({ error: "Email e senha são obrigatórios." });
-        const result = await pool.query('SELECT * FROM alunos WHERE email = $1', [email]);
-        const aluno = result.rows[0];
+        if (admin) {
+            const match = await bcrypt.compare(password, admin.password_hash);
+            if (match) {
+                const payload = { id: admin.id, email: admin.email, role: 'admin' };
+                const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
+                return res.json({ message: "Login de admin bem-sucedido!", token: token, userType: 'admin' });
+            }
+        }
+
+        // Se não for admin, ou se a senha do admin estiver errada, tenta como aluno
+        const studentResult = await pool.query('SELECT * FROM alunos WHERE email = $1', [email]);
+        const aluno = studentResult.rows[0];
         if (!aluno) return res.status(401).json({ error: "Credenciais inválidas." });
+
         const match = await bcrypt.compare(password, aluno.password_hash);
         if (match) {
             const payload = { id: aluno.id, email: aluno.email, role: 'student' };
             const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
-            res.json({ message: "Login bem-sucedido!", token: token });
+            return res.json({ message: "Login de aluno bem-sucedido!", token: token, userType: 'student' });
         } else {
-            res.status(401).json({ error: "Credenciais inválidas." });
+            return res.status(401).json({ error: "Credenciais inválidas." });
         }
     } catch (err) {
         console.error(err);
@@ -134,10 +122,7 @@ app.get('/api/cursos', async (req, res) => {
     try {
         const result = await pool.query("SELECT * FROM cursos ORDER BY name");
         res.json({ message: "success", data: result.rows });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Erro interno do servidor." });
-    }
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
 });
 
 app.get('/api/cursos/:id', async (req, res) => {
@@ -146,10 +131,7 @@ app.get('/api/cursos/:id', async (req, res) => {
         const result = await pool.query("SELECT * FROM cursos WHERE id = $1", [id]);
         if (result.rowCount === 0) return res.status(404).json({ message: "Curso não encontrado." });
         res.json({ message: "success", data: result.rows[0] });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Erro interno do servidor." });
-    }
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
 });
 
 app.post('/api/cursos', authenticateToken, async (req, res) => {
@@ -159,10 +141,7 @@ app.post('/api/cursos', authenticateToken, async (req, res) => {
         const sql = 'INSERT INTO cursos (name, description) VALUES ($1, $2) RETURNING *';
         const result = await pool.query(sql, [name, description]);
         res.status(201).json({ message: "Curso criado com sucesso!", data: result.rows[0] });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Erro interno do servidor." });
-    }
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
 });
 
 app.put('/api/cursos/:id', authenticateToken, async (req, res) => {
@@ -174,10 +153,7 @@ app.put('/api/cursos/:id', authenticateToken, async (req, res) => {
         const result = await pool.query(sql, [name, description, id]);
         if (result.rowCount === 0) return res.status(404).json({ message: "Curso não encontrado." });
         res.json({ message: "Curso atualizado com sucesso!", data: result.rows[0] });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Erro interno do servidor." });
-    }
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
 });
 
 app.delete('/api/cursos/:id', authenticateToken, async (req, res) => {
@@ -186,10 +162,7 @@ app.delete('/api/cursos/:id', authenticateToken, async (req, res) => {
         const result = await pool.query('DELETE FROM cursos WHERE id = $1', [id]);
         if (result.rowCount === 0) return res.status(404).json({ message: "Curso não encontrado." });
         res.json({ message: "Curso e todos os seus dados associados foram excluídos com sucesso!" });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Erro interno do servidor." });
-    }
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
 });
 
 app.get('/api/cursos/:id/alunos', authenticateToken, async (req, res) => {
@@ -198,10 +171,7 @@ app.get('/api/cursos/:id/alunos', authenticateToken, async (req, res) => {
         const sql = `SELECT a.id, a.name, a.email FROM alunos a JOIN inscricoes i ON a.id = i.aluno_id WHERE i.curso_id = $1`;
         const result = await pool.query(sql, [id]);
         res.json({ message: "success", data: result.rows });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Erro interno do servidor." });
-    }
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
 });
 
 // == ALUNOS ==
@@ -209,10 +179,7 @@ app.get('/api/alunos', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query("SELECT * FROM alunos ORDER BY name");
         res.json({ message: "success", data: result.rows });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Erro interno do servidor." });
-    }
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
 });
 
 app.get('/api/alunos/:id', authenticateToken, async (req, res) => {
@@ -221,10 +188,7 @@ app.get('/api/alunos/:id', authenticateToken, async (req, res) => {
         const result = await pool.query("SELECT * FROM alunos WHERE id = $1", [id]);
         if (result.rowCount === 0) return res.status(404).json({ message: "Aluno não encontrado." });
         res.json({ message: "success", data: result.rows[0] });
-    } catch(err) {
-        console.error(err);
-        res.status(500).json({ error: "Erro interno do servidor." });
-    }
+    } catch(err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
 });
 
 app.post('/api/alunos', authenticateToken, async (req, res) => {
@@ -277,23 +241,16 @@ app.delete('/api/alunos/:id', authenticateToken, async (req, res) => {
         const result = await pool.query('DELETE FROM alunos WHERE id = $1', [id]);
         if (result.rowCount === 0) return res.status(404).json({ message: "Aluno não encontrado." });
         res.json({ message: "Aluno e todos os seus dados associados foram excluídos com sucesso!" });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Erro interno do servidor." });
-    }
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
 });
 
 // == AULAS ==
 app.get('/api/cursos/:curso_id/aulas', authenticateToken, async (req, res) => {
     try {
         const { curso_id } = req.params;
-        const sql = "SELECT * FROM aulas WHERE curso_id = $1 ORDER BY id";
-        const result = await pool.query(sql, [curso_id]);
+        const result = await pool.query("SELECT * FROM aulas WHERE curso_id = $1 ORDER BY id", [curso_id]);
         res.json({ message: "Aulas listadas com sucesso", data: result.rows });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Erro interno do servidor." });
-    }
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
 });
 
 app.get('/api/aulas/:id', authenticateToken, async (req, res) => {
@@ -302,26 +259,18 @@ app.get('/api/aulas/:id', authenticateToken, async (req, res) => {
         const result = await pool.query("SELECT * FROM aulas WHERE id = $1", [id]);
         if (result.rowCount === 0) return res.status(404).json({ message: "Aula não encontrada." });
         res.json({ message: "Aula encontrada com sucesso", data: result.rows[0] });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Erro interno do servidor." });
-    }
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
 });
 
 app.post('/api/aulas', authenticateToken, upload.single('conteudo'), async (req, res) => {
     try {
         const { titulo, tipo, curso_id } = req.body;
         const conteudo = req.file ? `/uploads/${req.file.filename}` : req.body.conteudo;
-        if (!titulo || !tipo || !conteudo || !curso_id) {
-            return res.status(400).json({ error: "Todos os campos são obrigatórios." });
-        }
+        if (!titulo || !tipo || !conteudo || !curso_id) return res.status(400).json({ error: "Todos os campos são obrigatórios." });
         const sql = "INSERT INTO aulas (titulo, tipo, conteudo, curso_id) VALUES ($1, $2, $3, $4) RETURNING id";
         const result = await pool.query(sql, [titulo, tipo, conteudo, curso_id]);
         res.status(201).json({ message: "Aula criada com sucesso", data: { id: result.rows[0].id } });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Erro interno do servidor." });
-    }
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
 });
 
 app.put('/api/aulas/:id', authenticateToken, upload.single('conteudo'), async (req, res) => {
@@ -334,10 +283,7 @@ app.put('/api/aulas/:id', authenticateToken, upload.single('conteudo'), async (r
         const result = await pool.query(sql, [titulo, tipo, conteudo, id]);
         if (result.rowCount === 0) return res.status(404).json({ message: "Aula não encontrada." });
         res.json({ message: "Aula atualizada com sucesso" });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Erro interno do servidor." });
-    }
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
 });
 
 app.delete('/api/aulas/:id', authenticateToken, async (req, res) => {
@@ -346,13 +292,28 @@ app.delete('/api/aulas/:id', authenticateToken, async (req, res) => {
         const result = await pool.query("DELETE FROM aulas WHERE id = $1", [id]);
         if (result.rowCount === 0) return res.status(404).json({ message: "Aula não encontrada." });
         res.json({ message: "Aula excluída com sucesso" });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Erro interno do servidor." });
-    }
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
 });
 
 // == INSCRIÇÕES E PROGRESSO ==
+app.get('/api/alunos/:id/cursos', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const sql = `SELECT c.id, c.name, c.description FROM cursos c JOIN inscricoes i ON c.id = i.curso_id WHERE i.aluno_id = $1`;
+        const result = await pool.query(sql, [id]);
+        res.json({ message: "success", data: result.rows });
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
+});
+
+app.get('/api/alunos/:aluno_id/cursos/:curso_id/aulas', authenticateToken, async (req, res) => {
+    try {
+        const { aluno_id, curso_id } = req.params;
+        const sql = ` SELECT a.id, a.titulo, a.tipo, a.conteudo, CASE WHEN p.id IS NOT NULL THEN true ELSE false END as concluida FROM aulas a LEFT JOIN progresso p ON a.id = p.aula_id AND p.aluno_id = $1 WHERE a.curso_id = $2 ORDER BY a.id`;
+        const result = await pool.query(sql, [aluno_id, curso_id]);
+        res.json({ message: "Aulas do curso com progresso", data: result.rows });
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
+});
+
 app.post('/api/inscricoes', authenticateToken, async (req, res) => {
     try {
         const { aluno_id, curso_id } = req.body;
@@ -381,30 +342,51 @@ app.delete('/api/inscricoes', authenticateToken, async (req, res) => {
     }
 });
 
-app.get('/api/alunos/:id/cursos', authenticateToken, async (req, res) => {
+app.post('/api/progresso', authenticateToken, async (req, res) => {
+    try {
+        const { aluno_id, aula_id } = req.body;
+        if (!aluno_id || !aula_id) return res.status(400).json({ error: "ID do aluno e da aula são obrigatórios." });
+        const sql = 'INSERT INTO progresso (aluno_id, aula_id) ON CONFLICT (aluno_id, aula_id) DO NOTHING';
+        await pool.query(sql, [aluno_id, aula_id]);
+        res.status(201).json({ message: "Progresso salvo com sucesso!" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Erro interno do servidor." });
+    }
+});
+
+app.get('/api/alunos/:id/progresso', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
-        const sql = `SELECT c.id, c.name, c.description FROM cursos c JOIN inscricoes i ON c.id = i.curso_id WHERE i.aluno_id = $1`;
-        const result = await pool.query(sql, [id]);
-        res.json({ message: "success", data: result.rows });
+        const sql = `
+            SELECT 
+                c.id as curso_id, 
+                c.name as curso_nome, 
+                (SELECT COUNT(*) FROM aulas WHERE curso_id = c.id)::int as total_aulas,
+                (SELECT COUNT(*) FROM progresso p JOIN aulas a ON p.aula_id = a.id WHERE p.aluno_id = $1 AND a.curso_id = c.id)::int as aulas_concluidas
+            FROM cursos c 
+            JOIN inscricoes i ON c.id = i.curso_id 
+            WHERE i.aluno_id = $2
+        `;
+        const result = await pool.query(sql, [id, id]);
+        res.json({ message: "Progresso do aluno", data: result.rows });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Erro interno do servidor." });
     }
 });
 
-app.get('/api/alunos/:aluno_id/cursos/:curso_id/aulas', authenticateToken, async (req, res) => {
-    try {
-        const { aluno_id, curso_id } = req.params;
-        const sql = ` SELECT a.id, a.titulo, a.tipo, a.conteudo, CASE WHEN p.id IS NOT NULL THEN true ELSE false END as concluida FROM aulas a LEFT JOIN progresso p ON a.id = p.aula_id AND p.aluno_id = $1 WHERE a.curso_id = $2 ORDER BY a.id`;
-        const result = await pool.query(sql, [aluno_id, curso_id]);
-        res.json({ message: "Aulas do curso com progresso", data: result.rows });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Erro interno do servidor." });
-    }
+// ==============================================================
+// == AS ROTAS DE ARQUIVOS ESTÁTICOS VÊM POR ÚLTIMO ==
+// ==============================================================
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'login.html'));
 });
+app.use(express.static(__dirname));
 
-if (!aluno_id || !aula_id) {
-    return res.status(400).json({ error: "ID do aluno e da aula são obrigatórios." });
-}
+
+// --- INICIA O SERVIDOR ---
+app.listen(port, () => {
+    console.log(`Servidor rodando na porta ${port}`);
+    createTables();
+});
