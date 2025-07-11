@@ -10,6 +10,13 @@ const { Pool } = require('pg');
 
 require('dotenv').config();
 
+// =======================================================
+// ADICIONE ESTAS DUAS LINHAS DE TESTE AQUI
+console.log('--- INICIANDO TESTE DE DIAGNÓSTICO ---');
+console.log('Valor da DATABASE_URL lido pelo servidor:', process.env.DATABASE_URL);
+// FIM DO TESTE
+// =======================================================
+
 const app = express();
 const port = process.env.PORT || 3000;
 const saltRounds = 10;
