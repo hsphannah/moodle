@@ -400,7 +400,6 @@ app.get('/api/alunos/:aluno_id/cursos/:curso_id/aulas', authenticateToken, async
     }
 });
 
-app.post('/api/progresso', authenticateToken, async (req, res) => {
-    try {
-        const { aluno_id, aula_id } = req.body;
-        if (!aluno_id || !aula_id) return res.status(400).json
+if (!aluno_id || !aula_id) {
+    return res.status(400).json({ error: "ID do aluno e da aula são obrigatórios." });
+}
