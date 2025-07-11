@@ -1,9 +1,9 @@
-// server.js - Versão 100% Completa, Corrigida e Final
+// server.js - Versão 100% Completa, Corrigida e Final Definitiva
 
 const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
+const jwt =require('jsonwebtoken');
 const multer = require('multer');
 const path = require('path');
 const { Pool } = require('pg');
@@ -26,6 +26,14 @@ const pool = new Pool({
 app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Configuração do Multer (ESTA PARTE ESTAVA FALTANDO)
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => { cb(null, 'uploads/'); },
+    filename: (req, file, cb) => { cb(null, Date.now() + path.extname(file.originalname)); }
+});
+const upload = multer({ storage: storage });
+
 
 // Função para criar as tabelas
 const createTables = async () => {
@@ -84,7 +92,6 @@ app.post('/api/login', async (req, res) => {
         const { email, password } = req.body;
         if (!email || !password) return res.status(400).json({ error: "Email e senha são obrigatórios." });
         
-        // Tenta como admin primeiro
         const adminResult = await pool.query('SELECT * FROM admins WHERE email = $1', [email]);
         const admin = adminResult.rows[0];
 
@@ -97,7 +104,6 @@ app.post('/api/login', async (req, res) => {
             }
         }
 
-        // Se não for admin, ou se a senha do admin estiver errada, tenta como aluno
         const studentResult = await pool.query('SELECT * FROM alunos WHERE email = $1', [email]);
         const aluno = studentResult.rows[0];
         if (!aluno) return res.status(401).json({ error: "Credenciais inválidas." });
@@ -125,7 +131,7 @@ app.get('/api/cursos', async (req, res) => {
     } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
 });
 
-app.get('/api/cursos/:id', async (req, res) => {
+app.get('/api/cursos/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
         const result = await pool.query("SELECT * FROM cursos WHERE id = $1", [id]);
@@ -376,6 +382,7 @@ app.get('/api/alunos/:id/progresso', authenticateToken, async (req, res) => {
     }
 });
 
+
 // ==============================================================
 // == AS ROTAS DE ARQUIVOS ESTÁTICOS VÊM POR ÚLTIMO ==
 // ==============================================================
@@ -383,7 +390,6 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'login.html'));
 });
 app.use(express.static(__dirname));
-
 
 // --- INICIA O SERVIDOR ---
 app.listen(port, () => {
