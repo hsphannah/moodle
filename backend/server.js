@@ -31,6 +31,9 @@ app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(express.static(__dirname)); // Serve os arquivos do front-end
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'login.html'));
+});
 
 // Configuração do Multer (continua igual)
 const storage = multer.diskStorage({
