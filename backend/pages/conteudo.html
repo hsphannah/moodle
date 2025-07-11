@@ -1,0 +1,31 @@
+<header class="main-header-with-button">
+    <div class="header-title">
+        <h1>Gerenciamento de Conteúdo</h1>
+        <p>Adicione e organize as aulas dos seus cursos.</p>
+    </div>
+</header>
+
+<div class="content-management-container">
+    <div class="form-group">
+        <label for="course-select-dropdown">Selecione um Curso para Gerenciar</label>
+        <select id="course-select-dropdown" class="form-select">
+            <option value="">Carregando cursos...</option>
+        </select>
+    </div>
+
+    <hr style="margin: 30px 0;">
+
+    <div id="lessons-management-area" style="display: none;">
+        <div class="main-header-with-button">
+            <div class="header-title">
+                <h2 id="lessons-list-header">Aulas do Curso</h2>
+            </div>
+            <button class="btn btn-primary" data-open-modal="modal-nova-aula">
+                <span class="material-symbols-outlined">add</span>
+                Nova Aula
+            </button>
+        </div>
+        <div id="lessons-list-container" style="margin-top: 20px;">
+            </div>
+    </div>
+</div>
