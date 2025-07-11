@@ -57,20 +57,37 @@
         </div>
     </div>
 
-    <div class="modal" id="modal-nova-aula">
-        <div class="modal-content">
-            <header class="modal-header"><h2>Adicionar Nova Aula</h2><button class="close-button">&times;</button></header>
-            <div class="modal-body">
-                <div class="form-group"><label for="aula-titulo">Título da Aula</label><input type="text" id="aula-titulo" class="form-input" placeholder="Ex: Introdução à Pintura"></div>
-                <div class="form-group"><label for="aula-tipo">Tipo de Conteúdo</label><select id="aula-tipo" class="form-select"><option value="Vídeo">Vídeo (colar link)</option><option value="Texto">Texto</option><option value="PDF">PDF (fazer upload)</option><option value="Imagem">Imagem (fazer upload)</option></select></div>
-                <div class="form-group"><label for="aula-conteudo-texto">Conteúdo</label><textarea id="aula-conteudo-texto" class="form-input" rows="4" placeholder="Cole a URL do vídeo ou digite o texto..."></textarea><input type="file" id="aula-conteudo-arquivo" class="form-input" style="display: none;"></div>
+  <div class="modal" id="modal-nova-aula">
+    <div class="modal-content">
+        <header class="modal-header"><h2>Adicionar Nova Aula</h2><button class="close-button">&times;</button></header>
+        <div class="modal-body">
+            
+            <div class="form-group">
+                <label for="aula-titulo">Título da Aula</label>
+                <input type="text" id="aula-titulo" class="form-input" placeholder="Ex: Teoria das Cores">
             </div>
-            <footer class="modal-footer">
-                <button class="btn btn-secondary" data-action="cancel">Cancelar</button>
-                <button class="btn btn-primary" data-action="save-aula">Salvar Aula</button>
-            </footer>
+            <div class="form-group">
+                <label for="aula-tipo">Tipo de Conteúdo</label>
+                <select id="aula-tipo" class="form-select">
+                    <option value="Vídeo (Link)">Vídeo (Colar Link)</option>
+                    <option value="Vídeo (Upload)">Vídeo (Fazer Upload)</option>
+                    <option value="Texto">Texto</option>
+                    <option value="PDF (Upload)">PDF (Fazer Upload)</option>
+                    <option value="Imagem (Upload)">Imagem (Fazer Upload)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="aula-conteudo-texto">Conteúdo</label>
+                <textarea id="aula-conteudo-texto" class="form-input" rows="4" placeholder="Cole a URL do vídeo ou digite o texto..."></textarea>
+                <input type="file" id="aula-conteudo-arquivo" class="form-input" style="display: none;">
+            </div>
         </div>
+        <footer class="modal-footer">
+            <button class="btn btn-secondary" data-action="cancel">Cancelar</button>
+            <button class="btn btn-primary" data-action="save-aula">Salvar Aula</button>
+        </footer>
     </div>
+</div>
 
     <script src="script.js"></script>
 </body>
