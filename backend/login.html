@@ -1,55 +1,40 @@
-// login.js - Versão Final e Corrigida
-
-document.addEventListener('DOMContentLoaded', () => {
-    const loginForm = document.getElementById('login-form');
-    const errorMessage = document.getElementById('error-message');
-
-    if (!loginForm) {
-        console.error("Erro Crítico: O formulário de login não foi encontrado.");
-        return;
-    }
-
-    loginForm.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        errorMessage.textContent = '';
-
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-
-        try {
-            // Fazemos UMA ÚNICA chamada para a nossa rota de login inteligente
-            const response = await fetch('/api/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-            });
-
-            if (!response.ok) {
-                const errorResult = await response.json();
-                throw new Error(errorResult.error || 'Credenciais inválidas.');
-            }
-
-            const result = await response.json();
-
-            // AGORA, VERIFICAMOS O TIPO DE USUÁRIO E REDIRECIONAMOS CORRETAMENTE
-            if (result.userType === 'admin') {
-                localStorage.setItem('adminToken', result.token);
-                localStorage.removeItem('studentToken'); // Limpa token de aluno, se houver
-                window.location.href = 'index.html'; // Redireciona para o painel do admin
-
-            } else if (result.userType === 'student') {
-                localStorage.setItem('studentToken', result.token);
-                localStorage.removeItem('adminToken'); // Limpa token de admin, se houver
-                window.location.href = 'portal.html'; // Redireciona para o portal do aluno
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Academia de Artes</title>
+    <link rel="stylesheet" href="login.css">
+</head>
+<body>
+    
+    <div class="login-container">
+        <div class="login-box">
+            <h2>Academia de Artes</h2>
+            <p>Bem-vindo de volta! Faça login para continuar.</p>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Senha</label>
+                    <input type="password" id="password" class="form-input" required>
+                </div>
+                <div class="form-options">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="remember-me"> Lembrar-me
+                    </label>
+                    <a href="#">Esqueceu a senha?</a>
+                </div>
                 
-            } else {
-                // Caso de segurança, se a resposta não tiver o userType
-                throw new Error('Tipo de usuário desconhecido na resposta do servidor.');
-            }
+                <p id="error-message" class="error-text"></p>
 
-        } catch (error) {
-            console.error('Falha no login:', error);
-            errorMessage.textContent = error.message;
-        }
-    });
-});
+                <button type="submit" class="btn-login">Entrar</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="login.js"></script>
+</body>
+</html>
