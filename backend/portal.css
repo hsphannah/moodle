@@ -30,61 +30,50 @@ body {
     color: var(--cor-texto-principal);          /* Usa a variável */
 }
 
-/* Container principal com Flexbox */
-.student-portal-container {
+/* ========================================= */
+/* VERSÃO CORRIGIDA ✅             */
+/* ========================================= */
+
+/* Container principal com Flexbox - NOME CORRIGIDO */
+.portal-container {
     display: flex;
 }
 
-/* Barra Lateral */
-.student-sidebar {
-    width: 260px;
-    background-color: var(--cor-fundo-sidebar); /* Usa a variável */
-    color: var(--cor-texto-sidebar);            /* Usa a variável */
-    min-height: 100vh;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-}
-
-.sidebar-logo {
-    text-align: center;
-    padding: 10px 0;
-    margin-bottom: 30px;
-    font-size: 1.5rem;
-    color: var(--cor-texto-hover); /* Usa a variável */
-}
-
-.sidebar-nav ul {
+/* Barra Lateral - Removido o "ul" desnecessário */
+.sidebar-nav {
     list-style: none;
+    display: flex; /* Adicionado para organizar os itens */
+    flex-direction: column;
+    gap: 8px; /* Espaçamento entre os links */
 }
 
-.sidebar-nav .nav-item a {
+/* SELETOR CORRIGIDO para aplicar ao link diretamente */
+.sidebar-nav .nav-item {
     display: flex;
     align-items: center;
     gap: 15px;
-    padding: 15px 20px;
+    padding: 12px 15px; /* Ajuste fino no padding */
     border-radius: 8px;
     text-decoration: none;
-    color: inherit;
+    color: inherit; /* Herda a cor da sidebar */
     font-weight: 500;
     transition: background-color 0.2s, color 0.2s;
 }
 
-.sidebar-nav .nav-item a:hover {
-    background-color: #343a40; /* Um pouco mais claro que o fundo para o hover */
-    color: var(--cor-texto-hover); /* Usa a variável */
+/* SELETOR CORRIGIDO para o hover */
+.sidebar-nav .nav-item:hover {
+    background-color: #343a40; 
+    color: var(--cor-texto-hover); 
 }
 
-.sidebar-nav .nav-item.active a {
-    background-color: var(--cor-primaria); /* Usa a variável */
-    color: var(--cor-texto-hover);         /* Usa a variável */
+/* SELETOR CORRIGIDO para o item ativo */
+.sidebar-nav .nav-item.active {
+    background-color: var(--cor-primaria);
+    color: var(--cor-texto-hover);
 }
 
-/* Rodapé da Sidebar */
-.sidebar-footer {
-    margin-top: auto;
-}
-.sidebar-footer .nav-item a {
+/* Também corrija o rodapé da sidebar */
+.sidebar-footer .nav-item {
     padding: 15px 20px;
     display: flex;
     align-items: center;
@@ -93,7 +82,7 @@ body {
     color: inherit;
     border-radius: 8px;
 }
-.sidebar-footer .nav-item a:hover {
+.sidebar-footer .nav-item:hover {
     background-color: #343a40;
     color: var(--cor-texto-hover);
 }
