@@ -1,16 +1,15 @@
-/* Importando a fonte e reset básico */
+/* --- ARQUIVO: portal.css --- */
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-/* Central de Comando das Cores */
 :root {
-    --cor-primaria: #e5383b;      /* Vermelho para destaques e botões */
-    --cor-fundo-sidebar: #212529; /* Preto suave para a barra lateral */
-    --cor-fundo-pagina: #f4f4f5;  /* Cinza muito claro para o fundo geral */
-    --cor-fundo-card: #ffffff;   /* Branco para os cards e áreas de conteúdo */
-    --cor-texto-principal: #212529; /* Preto suave para textos principais */
-    --cor-texto-sidebar: #ced4da; /* Cinza claro para texto na sidebar */
-    --cor-texto-hover: #ffffff;    /* Texto branco ao passar o mouse */
-    --cor-borda: #dee2e6;         /* Cinza para as bordas e divisórias */
+    --cor-primaria: #e5383b;
+    --cor-fundo-sidebar: #212529;
+    --cor-fundo-pagina: #f4f4f5;
+    --cor-texto-principal: #212529;
+    --cor-texto-sidebar: #ced4da;
+    --cor-texto-hover: #ffffff;
+    --cor-borda: #dee2e6;
 }
 
 * {
@@ -25,13 +24,11 @@ body {
     color: var(--cor-texto-principal);
 }
 
-/* Container principal com Flexbox - NOME CORRIGIDO */
 .portal-container {
     display: flex;
 }
 
-/* Barra Lateral */
-.sidebar {
+.student-sidebar {
     width: 260px;
     background-color: var(--cor-fundo-sidebar);
     color: var(--cor-texto-sidebar);
@@ -41,23 +38,27 @@ body {
     flex-direction: column;
 }
 
-.sidebar-header {
-    text-align: center;
-    padding: 10px 0;
-    margin-bottom: 20px;
+.sidebar-header h3 {
     font-size: 1.5rem;
     color: var(--cor-texto-hover);
+    margin-bottom: 30px;
+    text-align: center;
 }
 
 .sidebar-nav {
     display: flex;
     flex-direction: column;
-    gap: 8px; /* Espaçamento entre os links */
+    gap: 10px;
 }
 
-/* SELETOR CORRIGIDO para aplicar ao link diretamente */
-.sidebar-nav .nav-item,
-.sidebar-footer .nav-item {
+.sidebar-footer {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.nav-item {
     display: flex;
     align-items: center;
     gap: 15px;
@@ -69,69 +70,27 @@ body {
     transition: background-color 0.2s, color 0.2s;
 }
 
-/* SELETOR CORRIGIDO para o hover */
-.sidebar-nav .nav-item:hover,
-.sidebar-footer .nav-item:hover {
+.nav-item:hover {
     background-color: #343a40;
     color: var(--cor-texto-hover);
 }
 
-/* SELETOR CORRIGIDO para o item ativo */
-.sidebar-nav .nav-item.active {
+.nav-item.active {
     background-color: var(--cor-primaria);
     color: var(--cor-texto-hover);
 }
 
-/* Rodapé da Sidebar */
-.sidebar-footer {
-    margin-top: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-/* Conteúdo Principal */
-.main-content {
+.student-content {
     flex-grow: 1;
-    padding: 30px;
-}
-
-.content-header {
-    margin-bottom: 30px;
+    padding: 40px;
 }
 
 .content-header h1 {
     font-size: 2rem;
     font-weight: 700;
-    margin-bottom: 20px;
+    margin-bottom: 30px;
 }
 
-.header-controls {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background-color: var(--cor-fundo-card);
-    padding: 15px;
-    border-radius: 8px;
-    border: 1px solid var(--cor-borda);
-}
-
-.header-controls label {
-    font-weight: 600;
-}
-
-#student-selector {
-    padding: 8px;
-    min-width: 250px;
-    border-radius: 6px;
-    border: 1px solid var(--cor-borda);
-    font-family: 'Inter', sans-serif;
-}
-
-.content-body {
-    /* Estilos para o corpo do conteúdo podem ser adicionados aqui */
-    padding: 20px;
-    background-color: var(--cor-fundo-card);
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
