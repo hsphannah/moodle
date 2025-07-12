@@ -1,11 +1,9 @@
-// login.js - Versão Final e Corrigida
-
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
     const errorMessage = document.getElementById('error-message');
 
     if (!loginForm) {
-        console.error("Erro Crítico: O formulário de login não foi encontrado.");
+        console.error("Erro Crítico: O elemento do formulário com id 'login-form' não foi encontrado no HTML.");
         return;
     }
 
@@ -17,35 +15,38 @@ document.addEventListener('DOMContentLoaded', () => {
         const password = document.getElementById('password').value;
 
         try {
-            // Fazemos UMA ÚNICA chamada para a nossa rota de login inteligente
-            const response = await fetch('/api/login', {
+            // 1. Tenta fazer login como ADMIN na rota de admin
+            const adminResponse = await fetch('/api/admin/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),
             });
 
-            if (!response.ok) {
-                const errorResult = await response.json();
-                throw new Error(errorResult.error || 'Credenciais inválidas.');
-            }
-
-            const result = await response.json();
-
-            // AGORA, VERIFICAMOS O TIPO DE USUÁRIO E REDIRECIONAMOS CORRETAMENTE
-            if (result.userType === 'admin') {
+            if (adminResponse.ok) {
+                const result = await adminResponse.json();
                 localStorage.setItem('adminToken', result.token);
                 localStorage.removeItem('studentToken'); // Limpa token de aluno, se houver
                 window.location.href = 'index.html'; // Redireciona para o painel do admin
+                return;
+            }
 
-            } else if (result.userType === 'student') {
+            // 2. Se o login de admin falhou, tenta como ALUNO na rota de aluno
+            const studentResponse = await fetch('/api/alunos/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            });
+
+            if (studentResponse.ok) {
+                const result = await studentResponse.json();
                 localStorage.setItem('studentToken', result.token);
                 localStorage.removeItem('adminToken'); // Limpa token de admin, se houver
                 window.location.href = 'portal.html'; // Redireciona para o portal do aluno
-                
-            } else {
-                // Caso de segurança, se a resposta não tiver o userType
-                throw new Error('Tipo de usuário desconhecido na resposta do servidor.');
+                return;
             }
+
+            // 3. Se nenhum dos dois funcionou, mostra o erro.
+            throw new Error('Credenciais inválidas.');
 
         } catch (error) {
             console.error('Falha no login:', error);

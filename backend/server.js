@@ -1,9 +1,9 @@
-// server.js - Versão para um DEPLOY LIMPO (100% Completo)
+// server.js - Versão 100% Completa, Final e Corrigida
 
 const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
-const jwt =require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const path = require('path');
 const { Pool } = require('pg');
@@ -34,28 +34,23 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-
 // Função para criar as tabelas
 const createTables = async () => {
+    const queries = [
+        `CREATE TABLE IF NOT EXISTS cursos (id SERIAL PRIMARY KEY, name TEXT NOT NULL, description TEXT);`,
+        `CREATE TABLE IF NOT EXISTS alunos (id SERIAL PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL);`,
+        `CREATE TABLE IF NOT EXISTS admins (id SERIAL PRIMARY KEY, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL);`,
+        `CREATE TABLE IF NOT EXISTS inscricoes (id SERIAL PRIMARY KEY, aluno_id INTEGER NOT NULL REFERENCES alunos(id) ON DELETE CASCADE, curso_id INTEGER NOT NULL REFERENCES cursos(id) ON DELETE CASCADE, UNIQUE(aluno_id, curso_id));`,
+        `CREATE TABLE IF NOT EXISTS aulas (id SERIAL PRIMARY KEY, titulo TEXT NOT NULL, tipo TEXT NOT NULL, conteudo TEXT NOT NULL, curso_id INTEGER NOT NULL REFERENCES cursos(id) ON DELETE CASCADE);`,
+        `CREATE TABLE IF NOT EXISTS progresso (id SERIAL PRIMARY KEY, aluno_id INTEGER NOT NULL REFERENCES alunos(id) ON DELETE CASCADE, aula_id INTEGER NOT NULL REFERENCES aulas(id) ON DELETE CASCADE, UNIQUE(aluno_id, aula_id));`
+    ];
     try {
-        // Esta linha limpa as tabelas antigas para forçar a atualização do schema
-        await pool.query('DROP TABLE IF EXISTS progresso, aulas, inscricoes, admins, alunos, cursos CASCADE');
-
-        const queries = [
-            `CREATE TABLE IF NOT EXISTS cursos (id SERIAL PRIMARY KEY, name TEXT NOT NULL, description TEXT);`,
-            `CREATE TABLE IF NOT EXISTS alunos (id SERIAL PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL);`,
-            `CREATE TABLE IF NOT EXISTS admins (id SERIAL PRIMARY KEY, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL);`,
-            `CREATE TABLE IF NOT EXISTS inscricoes (id SERIAL PRIMARY KEY, aluno_id INTEGER NOT NULL REFERENCES alunos(id) ON DELETE CASCADE, curso_id INTEGER NOT NULL REFERENCES cursos(id) ON DELETE CASCADE, UNIQUE(aluno_id, curso_id));`,
-            `CREATE TABLE IF NOT EXISTS aulas (id SERIAL PRIMARY KEY, titulo TEXT NOT NULL, tipo TEXT NOT NULL, conteudo TEXT NOT NULL, curso_id INTEGER NOT NULL REFERENCES cursos(id) ON DELETE CASCADE);`,
-            `CREATE TABLE IF NOT EXISTS progresso (id SERIAL PRIMARY KEY, aluno_id INTEGER NOT NULL REFERENCES alunos(id) ON DELETE CASCADE, aula_id INTEGER NOT NULL REFERENCES aulas(id) ON DELETE CASCADE, UNIQUE(aluno_id, aula_id));`
-        ];
-        
         for (const query of queries) {
             await pool.query(query);
         }
-        console.log("Tabelas recriadas com sucesso no PostgreSQL.");
+        console.log("Tabelas verificadas/criadas com sucesso no PostgreSQL.");
     } catch (err) {
-        console.error("Erro fatal ao recriar as tabelas:", err);
+        console.error("Erro fatal ao criar as tabelas:", err);
     }
 };
 
@@ -75,7 +70,43 @@ app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok' });
 });
 
-// == AUTENTICAÇÃO E ADMIN ==
+// == ROTAS DE AUTENTICAÇÃO SEPARADAS ==
+app.post('/api/admin/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        if (!email || !password) return res.status(400).json({ error: "Email e senha são obrigatórios." });
+        const result = await pool.query('SELECT * FROM admins WHERE email = $1', [email]);
+        const admin = result.rows[0];
+        if (!admin) return res.status(401).json({ error: "Credenciais inválidas." });
+        const match = await bcrypt.compare(password, admin.password_hash);
+        if (match) {
+            const payload = { id: admin.id, email: admin.email, role: 'admin' };
+            const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
+            res.json({ message: "Login de admin bem-sucedido!", token: token });
+        } else {
+            res.status(401).json({ error: "Credenciais inválidas." });
+        }
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
+});
+
+app.post('/api/alunos/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        if (!email || !password) return res.status(400).json({ error: "Email e senha são obrigatórios." });
+        const result = await pool.query('SELECT * FROM alunos WHERE email = $1', [email]);
+        const aluno = result.rows[0];
+        if (!aluno) return res.status(401).json({ error: "Credenciais inválidas." });
+        const match = await bcrypt.compare(password, aluno.password_hash);
+        if (match) {
+            const payload = { id: aluno.id, email: aluno.email, role: 'student' };
+            const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
+            res.json({ message: "Login de aluno bem-sucedido!", token: token });
+        } else {
+            res.status(401).json({ error: "Credenciais inválidas." });
+        }
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
+});
+
 app.post('/api/register', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -90,42 +121,6 @@ app.post('/api/register', async (req, res) => {
         res.status(500).json({ error: "Erro interno do servidor." });
     }
 });
-
-app.post('/api/login', async (req, res) => {
-    try {
-        const { email, password } = req.body;
-        if (!email || !password) return res.status(400).json({ error: "Email e senha são obrigatórios." });
-        
-        const adminResult = await pool.query('SELECT * FROM admins WHERE email = $1', [email]);
-        const admin = adminResult.rows[0];
-
-        if (admin) {
-            const match = await bcrypt.compare(password, admin.password_hash);
-            if (match) {
-                const payload = { id: admin.id, email: admin.email, role: 'admin' };
-                const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
-                return res.json({ message: "Login de admin bem-sucedido!", token: token, userType: 'admin' });
-            }
-        }
-
-        const studentResult = await pool.query('SELECT * FROM alunos WHERE email = $1', [email]);
-        const aluno = studentResult.rows[0];
-        if (!aluno) return res.status(401).json({ error: "Credenciais inválidas." });
-
-        const match = await bcrypt.compare(password, aluno.password_hash);
-        if (match) {
-            const payload = { id: aluno.id, email: aluno.email, role: 'student' };
-            const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
-            return res.json({ message: "Login de aluno bem-sucedido!", token: token, userType: 'student' });
-        } else {
-            return res.status(401).json({ error: "Credenciais inválidas." });
-        }
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Erro interno do servidor." });
-    }
-});
-
 
 // == CURSOS ==
 app.get('/api/cursos', async (req, res) => {
