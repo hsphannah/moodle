@@ -1,4 +1,4 @@
-// server.js - Versão 100% Completa, Corrigida e Final Definitiva
+// server.js - Versão para um DEPLOY LIMPO (100% Completo)
 
 const express = require('express');
 const cors = require('cors');
@@ -27,7 +27,7 @@ app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Configuração do Multer (ESTA PARTE ESTAVA FALTANDO)
+// Configuração do Multer
 const storage = multer.diskStorage({
     destination: (req, file, cb) => { cb(null, 'uploads/'); },
     filename: (req, file, cb) => { cb(null, Date.now() + path.extname(file.originalname)); }
@@ -38,10 +38,9 @@ const upload = multer({ storage: storage });
 // Função para criar as tabelas
 const createTables = async () => {
     try {
-        // ESTA É A LINHA CRUCIAL QUE FORÇA A LIMPEZA E ATUALIZAÇÃO
-        await pool.query('DROP TABLE IF EXISTS alunos CASCADE');
+        // Esta linha limpa as tabelas antigas para forçar a atualização do schema
+        await pool.query('DROP TABLE IF EXISTS progresso, aulas, inscricoes, admins, alunos, cursos CASCADE');
 
-        // O resto do código recria tudo do zero com a estrutura correta
         const queries = [
             `CREATE TABLE IF NOT EXISTS cursos (id SERIAL PRIMARY KEY, name TEXT NOT NULL, description TEXT);`,
             `CREATE TABLE IF NOT EXISTS alunos (id SERIAL PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL);`,
@@ -50,7 +49,7 @@ const createTables = async () => {
             `CREATE TABLE IF NOT EXISTS aulas (id SERIAL PRIMARY KEY, titulo TEXT NOT NULL, tipo TEXT NOT NULL, conteudo TEXT NOT NULL, curso_id INTEGER NOT NULL REFERENCES cursos(id) ON DELETE CASCADE);`,
             `CREATE TABLE IF NOT EXISTS progresso (id SERIAL PRIMARY KEY, aluno_id INTEGER NOT NULL REFERENCES alunos(id) ON DELETE CASCADE, aula_id INTEGER NOT NULL REFERENCES aulas(id) ON DELETE CASCADE, UNIQUE(aluno_id, aula_id));`
         ];
-
+        
         for (const query of queries) {
             await pool.query(query);
         }
@@ -395,6 +394,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'login.html'));
 });
 app.use(express.static(__dirname));
+
 
 // --- INICIA O SERVIDOR ---
 app.listen(port, () => {
