@@ -1,11 +1,7 @@
-/* portal.css */
-
 /* Importando a fonte e reset básico */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-/* ========================================= */
-/* NOVIDADE: Central de Comando das Cores   */
-/* ========================================= */
+/* Central de Comando das Cores */
 :root {
     --cor-primaria: #e5383b;      /* Vermelho para destaques e botões */
     --cor-fundo-sidebar: #212529; /* Preto suave para a barra lateral */
@@ -17,7 +13,6 @@
     --cor-borda: #dee2e6;         /* Cinza para as bordas e divisórias */
 }
 
-
 * {
     margin: 0;
     padding: 0;
@@ -26,44 +21,59 @@
 
 body {
     font-family: 'Inter', sans-serif;
-    background-color: var(--cor-fundo-pagina); /* Usa a variável */
-    color: var(--cor-texto-principal);          /* Usa a variável */
+    background-color: var(--cor-fundo-pagina);
+    color: var(--cor-texto-principal);
 }
-
-/* ========================================= */
-/* VERSÃO CORRIGIDA ✅             */
-/* ========================================= */
 
 /* Container principal com Flexbox - NOME CORRIGIDO */
 .portal-container {
     display: flex;
 }
 
-/* Barra Lateral - Removido o "ul" desnecessário */
+/* Barra Lateral */
+.sidebar {
+    width: 260px;
+    background-color: var(--cor-fundo-sidebar);
+    color: var(--cor-texto-sidebar);
+    min-height: 100vh;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-header {
+    text-align: center;
+    padding: 10px 0;
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+    color: var(--cor-texto-hover);
+}
+
 .sidebar-nav {
-    list-style: none;
-    display: flex; /* Adicionado para organizar os itens */
+    display: flex;
     flex-direction: column;
     gap: 8px; /* Espaçamento entre os links */
 }
 
 /* SELETOR CORRIGIDO para aplicar ao link diretamente */
-.sidebar-nav .nav-item {
+.sidebar-nav .nav-item,
+.sidebar-footer .nav-item {
     display: flex;
     align-items: center;
     gap: 15px;
-    padding: 12px 15px; /* Ajuste fino no padding */
+    padding: 12px 15px;
     border-radius: 8px;
     text-decoration: none;
-    color: inherit; /* Herda a cor da sidebar */
+    color: inherit;
     font-weight: 500;
     transition: background-color 0.2s, color 0.2s;
 }
 
 /* SELETOR CORRIGIDO para o hover */
-.sidebar-nav .nav-item:hover {
-    background-color: #343a40; 
-    color: var(--cor-texto-hover); 
+.sidebar-nav .nav-item:hover,
+.sidebar-footer .nav-item:hover {
+    background-color: #343a40;
+    color: var(--cor-texto-hover);
 }
 
 /* SELETOR CORRIGIDO para o item ativo */
@@ -72,24 +82,16 @@ body {
     color: var(--cor-texto-hover);
 }
 
-/* Também corrija o rodapé da sidebar */
-.sidebar-footer .nav-item {
-    padding: 15px 20px;
+/* Rodapé da Sidebar */
+.sidebar-footer {
+    margin-top: auto;
     display: flex;
-    align-items: center;
-    gap: 15px;
-    text-decoration: none;
-    color: inherit;
-    border-radius: 8px;
+    flex-direction: column;
+    gap: 8px;
 }
-.sidebar-footer .nav-item:hover {
-    background-color: #343a40;
-    color: var(--cor-texto-hover);
-}
-
 
 /* Conteúdo Principal */
-.student-content {
+.main-content {
     flex-grow: 1;
     padding: 30px;
 }
@@ -97,190 +99,39 @@ body {
 .content-header {
     margin-bottom: 30px;
 }
+
 .content-header h1 {
     font-size: 2rem;
     font-weight: 700;
+    margin-bottom: 20px;
 }
 
-/* Grade de Cursos */
-.course-cards-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 25px;
-}
-
-.course-card {
-    background-color: var(--cor-fundo-card); /* Usa a variável */
-    border: 1px solid var(--cor-borda);       /* Usa a variável */
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-
-.course-card-body {
-    padding: 20px;
-    flex-grow: 1;
-}
-.course-card-body h2 {
-    font-size: 1.2rem;
-    margin-bottom: 10px;
-}
-.course-card-body p {
-    font-size: 0.9rem;
-    color: #6c757d; /* Um cinza para texto secundário */
-    line-height: 1.5;
-}
-.course-card-footer {
-    padding: 15px 20px;
-    border-top: 1px solid var(--cor-borda);
-}
-.course-card-footer .btn-primary {
-    width: 100%;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
-    background-color: var(--cor-primaria); /* Usa a variável */
-    color: white;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-.course-card-footer .btn-primary:hover {
-    opacity: 0.85;
-}
-.student-selector-bar {
-    background-color: #fff;
-    padding: 10px 40px;
-    border-bottom: 1px solid #dee2e6;
+.header-controls {
     display: flex;
     align-items: center;
-    gap: 15px;
-}
-.student-selector-bar label {
-    font-weight: 600;
-}
-.student-selector-bar .form-select {
-    padding: 8px;
-    min-width: 250px;
-    border-radius: 6px;
-    border-color: #ccc;
-}
-/* Estilos para a página de progresso */
-.progress-container {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 20px;
-}
-
-.progress-card {
-    background-color: #fff;
-    padding: 25px;
-    border-radius: 8px;
-    border: 1px solid #e0e0e0;
-}
-
-.progress-card h3 {
-    margin-bottom: 15px;
-}
-
-.progress-bar-wrapper {
-    background-color: #e9ecef;
-    border-radius: 10px;
-    height: 12px;
-    margin-bottom: 10px;
-    overflow: hidden;
-}
-
-.progress-bar {
-    height: 100%;
-    background-color: var(--cor-primaria);
-    border-radius: 10px;
-    transition: width 0.5s ease-in-out;
-}
-
-.progress-details {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.9rem;
-    color: #6c757d;
-}
-/* em portal.css */
-.progress-container {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 20px;
-}
-.progress-card {
+    gap: 10px;
     background-color: var(--cor-fundo-card);
-    padding: 25px;
+    padding: 15px;
     border-radius: 8px;
     border: 1px solid var(--cor-borda);
 }
-.progress-card h3 {
-    margin: 0;
-    font-size: 1.1rem;
-    margin-bottom: 15px;
-}
-.progress-bar-wrapper {
-    background-color: #e9ecef;
-    border-radius: 10px;
-    height: 12px;
-    margin-bottom: 10px;
-    overflow: hidden;
-}
-.progress-bar {
-    height: 100%;
-    background-color: var(--cor-primaria);
-    border-radius: 10px;
-    transition: width 0.5s ease-in-out;
-}
-.progress-details {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.9rem;
-    color: #6c757d;
-}
-/* Estilos para o conteúdo da aula (acordeão) */
-.lesson-item-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    cursor: pointer;
+
+.header-controls label {
+    font-weight: 600;
 }
 
-.lesson-list-item {
-    flex-wrap: wrap; /* Permite que o conteúdo quebre a linha */
+#student-selector {
+    padding: 8px;
+    min-width: 250px;
+    border-radius: 6px;
+    border: 1px solid var(--cor-borda);
+    font-family: 'Inter', sans-serif;
 }
 
-.lesson-item-content {
-    display: none; /* Começa escondido por padrão */
-    width: 100%;
+.content-body {
+    /* Estilos para o corpo do conteúdo podem ser adicionados aqui */
     padding: 20px;
-    margin-top: 15px;
-    border-top: 1px solid var(--cor-borda);
-    background-color: #fafafa;
-}
-
-.lesson-item-content p {
-    line-height: 1.6;
-}
-
-/* Estilos para o vídeo incorporado */
-.video-container {
-    position: relative;
-    padding-bottom: 56.25%; /* Proporção de 16:9 */
-    height: 0;
-    overflow: hidden;
-    max-width: 100%;
-    background: #000;
-}
-
-.video-container iframe {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    background-color: var(--cor-fundo-card);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }

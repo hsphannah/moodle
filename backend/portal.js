@@ -2,177 +2,165 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     
-    const contentArea = document.querySelector('.student-content');
-    const navItems = document.querySelectorAll('.nav-link');
+    // ===============================================
+    // SELETORES E VARIÁVEIS GLOBAIS
+    // ===============================================
+    const contentArea = document.querySelector('.main-content');
+    const navItems = document.querySelectorAll('.nav-item');
     const studentSelector = document.getElementById('student-selector');
     
-    let currentAlunoId = null;
+    let currentAlunoId = null; 
 
-    const getToken = () => localStorage.getItem('adminToken');
+    const getToken = () => localStorage.getItem('adminToken'); // Simula pegar um token de admin
 
-      // ========================
-    // FUNÇÕES DE AÇÃO DO ALUNO 
-    // ==========================
+    // ========================================================
+    // LÓGICA DE NAVEGAÇÃO PRINCIPAL 
+    // ========================================================
+    const handleNavClick = (event) => {
+        event.preventDefault(); 
 
-    const handleEnrollment = async (courseId) => {
-        try {
-            const response = await fetch('/api/inscricoes', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${studentToken}` },
-                // O backend usará o ID do token, mas enviamos o ID do aluno por segurança
-                body: JSON.stringify({ aluno_id: studentId, curso_id: courseId })
-            });
-            const result = await response.json();
-            if (!response.ok) throw new Error(result.message || 'Não foi possível realizar a inscrição.');
-            alert(result.message);
-            document.querySelector('[data-view="meus-cursos"]')?.click();
-        } catch (error) {
-            console.error("Erro na inscrição:", error);
-            alert(`Erro: ${error.message}`);
+        const clickedItem = event.currentTarget;
+        const view = clickedItem.dataset.view;
+
+        if (!view) return;
+
+        navItems.forEach(item => item.classList.remove('active'));
+        clickedItem.classList.add('active');
+
+        switch (view) {
+            case 'dashboard':
+                renderDashboard();
+                break;
+            case 'meus-cursos':
+                renderMyCourses();
+                break;
+            case 'todos-os-cursos':
+                renderAllCourses();
+                break;
+            case 'meu-progresso':
+                renderMyProgress();
+                break;
+            case 'aulas-ao-vivo':
+            case 'mensalidades':
+            case 'mensagens':
+            case 'meu-perfil':
+                renderPlaceholder(clickedItem.querySelector('span:last-child').textContent);
+                break;
+            default:
+                renderDashboard();
         }
     };
     
-    const handleMarkLessonComplete = async (aulaId, cursoId, cursoNome) => {
+    navItems.forEach(item => {
+        if (!item.href.includes('login.html')) {
+            item.addEventListener('click', handleNavClick);
+        }
+    });
+
+    // ========================
+    // FUNÇÕES DE AÇÃO (Exemplos)
+    // ========================
+    const handleEnrollment = async (courseId) => {
+        if (!currentAlunoId) {
+            alert('Por favor, selecione um aluno para realizar a inscrição.');
+            return;
+        }
         try {
-            await fetch('/api/progresso', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${studentToken}` },
-                body: JSON.stringify({ aluno_id: studentId, aula_id: aulaId })
-            });
-            renderCourseLessons(cursoId, cursoNome);
+            // Lógica para chamar a API de inscrição...
+            console.log(`Inscrito aluno ${currentAlunoId} no curso ${courseId}`);
+            alert(`Inscrição no curso ${courseId} realizada com sucesso para o aluno!`);
+            document.querySelector('[data-view="meus-cursos"]')?.click(); 
         } catch (error) {
-            console.error("Erro ao marcar aula como concluída:", error);
-            alert(`Erro: ${error.message}`);
+            console.error("Erro na inscrição:", error);
         }
     };
+    
+    // ===============================================
+    // FUNÇÕES DE RENDERIZAÇÃO DE CONTEÚDO (Exemplos)
+    // ===============================================
+    const renderDashboard = () => {
+        if (!contentArea) return;
+        contentArea.querySelector('.content-header h1').textContent = 'Dashboard';
+        contentArea.querySelector('.content-body').innerHTML = `
+            <h2>Bem-vindo ao Portal!</h2>
+            <p>Use o menu à esquerda para navegar pelas seções.</p>
+            <p>Selecione um aluno no menu acima para simular a visão dele.</p>
+        `;
+    };
 
-    // ===============================================
-    // FUNÇÕES DE RENDERIZAÇÃO DE CONTEÚDO
-    // ===============================================
-    const renderDashboard = () => { /* ... sem alterações ... */ };
-    const renderPlaceholder = (pageTitle) => { /* ... sem alterações ... */ };
+    const renderPlaceholder = (pageTitle) => {
+        if (!contentArea) return;
+        contentArea.querySelector('.content-header h1').textContent = pageTitle;
+        contentArea.querySelector('.content-body').innerHTML = `<p>Conteúdo para <strong>${pageTitle}</strong> ainda não implementado.</p>`;
+    };
+
+    // As funções abaixo são exemplos que simulam uma chamada de API.
+    // Substitua o conteúdo delas pela sua lógica real de fetch.
 
     const renderAllCourses = async () => {
         if (!contentArea) return;
         contentArea.querySelector('.content-header h1').textContent = 'Todos os Cursos';
         const contentBody = contentArea.querySelector('.content-body');
-        contentBody.innerHTML = `<p>Carregando cursos...</p>`;
-        try {
-            const response = await fetch(`/api/cursos`); // CORRIGIDO
-            const result = await response.json();
-            if (!response.ok) throw new Error(result.error || 'Não foi possível buscar os cursos.');
-            // ... resto da função igual ...
-        } catch (error) { /* ... */ }
+        contentBody.innerHTML = `<p>Carregando todos os cursos disponíveis...</p>`;
+        // ... aqui viria sua chamada fetch para /api/cursos
     };
 
     const renderMyCourses = async () => {
         if (!contentArea) return;
         contentArea.querySelector('.content-header h1').textContent = 'Meus Cursos';
         const contentBody = contentArea.querySelector('.content-body');
-        if (!currentAlunoId) { /* ... */ return; }
-        contentBody.innerHTML = `<p>Carregando seus cursos...</p>`;
-        const token = getToken();
-        if (!token) { /* ... */ return; }
-
-        try {
-            const response = await fetch(`/api/alunos/${currentAlunoId}/cursos`, { headers: { 'Authorization': `Bearer ${token}` } }); // CORRIGIDO
-            if (!response.ok) { 
-                if (response.status === 401 || response.status === 403) throw new Error('Sessão inválida ou expirada.');
-                const result = await response.json();
-                throw new Error(result.error || 'Não foi possível buscar os cursos.');
-            }
-            // ... resto da função igual ...
-        } catch (error) { /* ... */ }
+        if (!currentAlunoId) {
+            contentBody.innerHTML = `<p>Por favor, selecione um aluno para ver seus cursos.</p>`;
+            return;
+        }
+        contentBody.innerHTML = `<p>Carregando cursos do aluno ${currentAlunoId}...</p>`;
+        // ... aqui viria sua chamada fetch para /api/alunos/${currentAlunoId}/cursos
     };
     
-    const createLessonContent = (lesson) => {
-        const contentDiv = document.createElement('div');
-        const tipo = lesson.tipo.toLowerCase();
-
-        if (tipo.includes('vídeo')) {
-            if (lesson.conteudo && lesson.conteudo.startsWith('/uploads/')) {
-                contentDiv.innerHTML = `
-                    <div class="video-container">
-                        <video controls width="100%">
-                            <source src="${lesson.conteudo}" type="video/mp4">
-                        </video>
-                    </div>`; // CORRIGIDO: removido localhost
-            } else {
-                let videoId = null;
-                try {
-                    const url = new URL(lesson.conteudo);
-                    if (url.hostname === 'www.youtube.com' || url.hostname === 'youtube.com') {
-                        videoId = url.searchParams.get('v');
-                    } else if (url.hostname === 'youtu.be') {
-                        videoId = url.pathname.slice(1);
-                    }
-                } catch (e) { console.error("URL de vídeo inválida:", lesson.conteudo); }
-
-                if (videoId) {
-                    contentDiv.innerHTML = `
-                        <div class="video-container">
-                            <iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe>
-                        </div>`; // CORRIGIDO
-                } else { /* ... */ }
-            }
-        } else if (tipo.includes('pdf') || tipo.includes('imagem')) {
-            contentDiv.innerHTML = `<a href="${lesson.conteudo}" target="_blank" class="btn btn-primary">Ver ${lesson.tipo}</a>`; // CORRIGIDO
-        } else if (tipo.includes('texto')) { /* ... */ } 
-        else { /* ... */ }
-        return contentDiv;
-    };
-
-    const renderCourseLessons = async (courseId, courseName) => {
-        if (!contentArea) return;
-        contentArea.querySelector('.content-header h1').textContent = courseName || 'Aulas do Curso';
-        const contentBody = contentArea.querySelector('.content-body');
-        if (!currentAlunoId) { /* ... */ return; }
-        contentBody.innerHTML = `<p>Carregando aulas...</p>`;
-        const token = getToken();
-        if (!token) { /* ... */ return; }
-        
-        try {
-            const response = await fetch(`/api/alunos/${currentAlunoId}/cursos/${courseId}/aulas`, { headers: { 'Authorization': `Bearer ${token}` } }); // CORRIGIDO
-            if (!response.ok) throw new Error('Não foi possível carregar as aulas.');
-            // ... resto da função igual ...
-        } catch (error) { /* ... */ }
-    };
-
     const renderMyProgress = async () => {
         if (!contentArea) return;
         contentArea.querySelector('.content-header h1').textContent = 'Meu Progresso';
         const contentBody = contentArea.querySelector('.content-body');
-        if (!currentAlunoId) { /* ... */ return; }
-        contentBody.innerHTML = `<p>Carregando seu progresso...</p>`;
-        const token = getToken();
-        if (!token) { /* ... */ return; }
-        
-        try {
-            const response = await fetch(`/api/alunos/${currentAlunoId}/progresso`, { headers: { 'Authorization': `Bearer ${token}` } }); // CORRIGIDO
-            if (!response.ok) throw new Error('Não foi possível carregar seu progresso.');
-            // ... resto da função igual ...
-        } catch (error) { /* ... */ }
+        if (!currentAlunoId) {
+            contentBody.innerHTML = `<p>Por favor, selecione um aluno para ver o progresso.</p>`;
+            return;
+        }
+        contentBody.innerHTML = `<p>Carregando progresso do aluno ${currentAlunoId}...</p>`;
+        // ... aqui viria sua chamada fetch para /api/alunos/${currentAlunoId}/progresso
     };
 
     // ===============================================
-    // GERENCIADORES DE EVENTOS E INICIALIZAÇÃO
+    // INICIALIZAÇÃO
     // ===============================================
     const populateStudentSelector = async () => {
-        const token = getToken();
-        if (!token || !studentSelector) return;
+        if (!studentSelector) return;
+        // Simulação de chamada API para buscar alunos
         try {
-            const response = await fetch('/api/alunos', { headers: { 'Authorization': `Bearer ${token}` } }); // CORRIGIDO
-            const result = await response.json();
-            if (!response.ok) throw new Error('Falha ao buscar alunos');
-            
-            studentSelector.innerHTML = '<option value="">-- Selecione um aluno para simular --</option>';
-            result.data.forEach(aluno => {
+            const fakeStudents = [
+                { id: 1, name: 'João da Silva' },
+                { id: 2, name: 'Maria Oliveira' },
+                { id: 3, name: 'Pedro Souza' }
+            ];
+            studentSelector.innerHTML = '<option value="">-- Selecione um aluno --</option>';
+            fakeStudents.forEach(aluno => {
                 studentSelector.innerHTML += `<option value="${aluno.id}">${aluno.name}</option>`;
             });
         } catch (error) {
             console.error(error);
-            studentSelector.innerHTML = '<option value="">Erro ao carregar alunos</option>';
+            studentSelector.innerHTML = '<option value="">Erro ao carregar</option>';
         }
     };
     
+    if (studentSelector) {
+        populateStudentSelector();
+        studentSelector.addEventListener('change', (e) => {
+            currentAlunoId = e.target.value;
+            // Após mudar de aluno, atualiza a view atual (ex: se estiver em 'Meus Cursos', recarrega para o novo aluno)
+            const activeView = document.querySelector('.nav-item.active');
+            if(activeView) activeView.click();
+        });
+    }
+
+    // Carrega a visão inicial (Dashboard)
+    renderDashboard();
 });
