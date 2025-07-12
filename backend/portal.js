@@ -1,127 +1,234 @@
-// --- ARQUIVO: server.js (Nova Tentativa de Correção) ---
+// --- ARQUIVO: portal.js (Versão Completa para o Aluno) ---
 
-const express = require('express');
-const cors = require('cors');
-const bcrypt = require('bcrypt');
-const jwt =require('jsonwebtoken');
-const multer = require('multer');
-const path = require('path');
-const { Pool } = require('pg');
+document.addEventListener('DOMContentLoaded', () => {
 
-require('dotenv').config();
+    // ===============================================
+    // SELETORES GLOBAIS
+    // ===============================================
+    const mainContent = document.querySelector('.main-content');
+    const contentHeader = mainContent.querySelector('.content-header');
+    const contentBody = mainContent.querySelector('.content-body');
+    const navItems = document.querySelectorAll('.nav-item');
 
-const app = express();
-const port = process.env.PORT || 3000;
-const saltRounds = 10;
+    // Modal de Conteúdo
+    const contentModal = document.getElementById('content-viewer-modal');
+    const modalTitle = document.getElementById('modal-content-title');
+    const modalBody = document.getElementById('modal-content-body');
+    const closeModalBtn = document.getElementById('modal-close-btn');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'seu_segredo_local_super_secreto_e_forte';
-const DATABASE_URL = process.env.DATABASE_URL;
+    let currentUser = null;
+    let token = null;
 
-const pool = new Pool({
-    connectionString: DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-});
-
-// Middlewares Essenciais
-app.use(cors());
-app.use(express.json());
-
-// --- MUDANÇA IMPORTANTE: A linha de 'uploads' foi REMOVIDA daqui ---
-
-// Configuração do Multer
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => { cb(null, 'uploads/'); },
-    filename: (req, file, cb) => { cb(null, Date.now() + path.extname(file.originalname)); }
-});
-const upload = multer({ storage: storage });
-
-// Função para criar as tabelas
-const createTables = async () => {
-    // ... (nenhuma mudança aqui, seu código de tabelas está perfeito)
-    const queries = [
-        `CREATE TABLE IF NOT EXISTS cursos (id SERIAL PRIMARY KEY, name TEXT NOT NULL, description TEXT);`,
-        `CREATE TABLE IF NOT EXISTS alunos (id SERIAL PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL);`,
-        `CREATE TABLE IF NOT EXISTS admins (id SERIAL PRIMARY KEY, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL);`,
-        `CREATE TABLE IF NOT EXISTS inscricoes (id SERIAL PRIMARY KEY, aluno_id INTEGER NOT NULL REFERENCES alunos(id) ON DELETE CASCADE, curso_id INTEGER NOT NULL REFERENCES cursos(id) ON DELETE CASCADE, UNIQUE(aluno_id, curso_id));`,
-        `CREATE TABLE IF NOT EXISTS aulas (id SERIAL PRIMARY KEY, titulo TEXT NOT NULL, tipo TEXT NOT NULL, conteudo TEXT NOT NULL, curso_id INTEGER NOT NULL REFERENCES cursos(id) ON DELETE CASCADE);`,
-        `CREATE TABLE IF NOT EXISTS progresso (id SERIAL PRIMARY KEY, aluno_id INTEGER NOT NULL REFERENCES alunos(id) ON DELETE CASCADE, aula_id INTEGER NOT NULL REFERENCES aulas(id) ON DELETE CASCADE, UNIQUE(aluno_id, aula_id));`
-    ];
-    try {
-        for (const query of queries) {
-            await pool.query(query);
+    // ===============================================
+    // FUNÇÕES DE UTILIDADE E AUTENTICAÇÃO
+    // ===============================================
+    
+    // Decodifica o JWT para pegar as informações do usuário
+    function decodeJwt(token) {
+        try {
+            return JSON.parse(atob(token.split('.')[1]));
+        } catch (e) {
+            console.error("Token inválido ou corrompido:", e);
+            return null;
         }
-        console.log("Tabelas verificadas/criadas com sucesso no PostgreSQL.");
-    } catch (err) {
-        console.error("Erro fatal ao criar as tabelas:", err);
     }
-};
 
-// Middleware de Autenticação
-const authenticateToken = (req, res, next) => {
-    // ... (nenhuma mudança aqui)
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-    if (token == null) return res.sendStatus(401);
-    jwt.verify(token, JWT_SECRET, (err, user) => { if (err) return res.sendStatus(403); req.user = user; next(); });
-};
+    // Função de Logout
+    function handleLogout() {
+        localStorage.removeItem('studentToken');
+        window.location.href = 'login.html';
+    }
 
-// ===========================================
-// == ROTAS DE API (NENHUMA MUDANÇA AQUI) ==
-// ===========================================
+    // ===============================================
+    // LÓGICA DO MODAL DE CONTEÚDO
+    // ===============================================
 
-// ... (todas as suas rotas /api/... continuam exatamente as mesmas)
-app.get('/health', (req, res) => { res.status(200).json({ status: 'ok' }); });
-app.post('/api/register', async (req, res) => { /* ... seu código ... */ });
-app.post('/api/admin/login', async (req, res) => { /* ... seu código ... */ });
-app.post('/api/alunos/login', async (req, res) => { /* ... seu código ... */ });
-app.get('/api/cursos', async (req, res) => { /* ... seu código ... */ });
-app.get('/api/cursos/:id', authenticateToken, async (req, res) => { /* ... seu código ... */ });
-app.post('/api/cursos', authenticateToken, async (req, res) => { /* ... seu código ... */ });
-app.put('/api/cursos/:id', authenticateToken, async (req, res) => { /* ... seu código ... */ });
-app.delete('/api/cursos/:id', authenticateToken, async (req, res) => { /* ... seu código ... */ });
-app.get('/api/cursos/:id/alunos', authenticateToken, async (req, res) => { /* ... seu código ... */ });
-app.get('/api/alunos', authenticateToken, async (req, res) => { /* ... seu código ... */ });
-app.get('/api/alunos/:id', authenticateToken, async (req, res) => { /* ... seu código ... */ });
-app.post('/api/alunos', authenticateToken, async (req, res) => { /* ... seu código ... */ });
-app.put('/api/alunos/:id', authenticateToken, async (req, res) => { /* ... seu código ... */ });
-app.delete('/api/alunos/:id', authenticateToken, async (req, res) => { /* ... seu código ... */ });
-app.get('/api/cursos/:curso_id/aulas', authenticateToken, async (req, res) => { /* ... seu código ... */ });
-app.get('/api/aulas/:id', authenticateToken, async (req, res) => { /* ... seu código ... */ });
-app.post('/api/aulas', authenticateToken, upload.single('conteudo'), async (req, res) => { /* ... seu código ... */ });
-app.put('/api/aulas/:id', authenticateToken, upload.single('conteudo'), async (req, res) => { /* ... seu código ... */ });
-app.delete('/api/aulas/:id', authenticateToken, async (req, res) => { /* ... seu código ... */ });
-app.get('/api/alunos/:id/cursos', authenticateToken, async (req, res) => { /* ... seu código ... */ });
-app.get('/api/alunos/:aluno_id/cursos/:curso_id/aulas', authenticateToken, async (req, res) => { /* ... seu código ... */ });
-app.post('/api/inscricoes', authenticateToken, async (req, res) => { /* ... seu código ... */ });
-app.delete('/api/inscricoes', authenticateToken, async (req, res) => { /* ... seu código ... */ });
-app.post('/api/progresso', authenticateToken, async (req, res) => { /* ... seu código ... */ });
-app.get('/api/alunos/:id/progresso', authenticateToken, async (req, res) => { /* ... seu código ... */ });
+    function showContentInModal(tipo, conteudo, titulo) {
+        if (!contentModal || !modalTitle || !modalBody) return;
 
+        modalTitle.textContent = titulo;
+        let contentHtml = '';
 
-// ==============================================================
-// == ROTAS DE ARQUIVOS ESTÁTICOS (SEÇÃO ATUALIZADA) ==
-// ==============================================================
+        const tipoLower = tipo.toLowerCase();
 
-// **CORREÇÃO AQUI**: Servimos a pasta /uploads primeiro
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+        if (tipoLower.includes('texto')) {
+            contentHtml = `<p>${conteudo.replace(/\n/g, '<br>')}</p>`;
+        } else if (tipoLower.includes('imagem')) {
+            contentHtml = `<img src="${conteudo}" alt="${titulo}">`;
+        } else if (tipoLower.includes('pdf')) {
+            contentHtml = `<iframe src="${conteudo}" width="100%" height="500px"></iframe>`;
+        } else if (tipoLower.includes('vídeo (upload)')) {
+            contentHtml = `<video controls autoplay width="100%"><source src="${conteudo}" type="video/mp4"></video>`;
+        } else if (tipoLower.includes('vídeo (link)')) {
+            let videoId = null;
+            try {
+                 const url = new URL(conteudo);
+                 if(url.hostname.includes('youtube.com') || url.hostname.includes('youtu.be')){
+                     videoId = url.searchParams.get('v') || url.pathname.split('/').pop();
+                 }
+            } catch(e) { console.error("URL de vídeo inválida");}
+            
+            if (videoId) {
+                contentHtml = `<iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+            } else {
+                contentHtml = `<p>Link de vídeo inválido. <a href="${conteudo}" target="_blank">Abrir link original.</a></p>`;
+            }
+        } else {
+            contentHtml = `<p>Tipo de conteúdo não suportado. <a href="${conteudo}" target="_blank">Tentar abrir em nova aba.</a></p>`;
+        }
 
-// Depois, servimos os outros arquivos estáticos da raiz (index.html, portal.html, css, etc)
-app.use(express.static(path.join(__dirname)));
+        modalBody.innerHTML = contentHtml;
+        contentModal.classList.add('active');
+    }
 
-// A rota da página inicial (login) vem depois dos arquivos estáticos
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'login.html'));
-});
+    // Adiciona listeners para fechar o modal
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', () => contentModal.classList.remove('active'));
+    }
+    if (contentModal) {
+        contentModal.addEventListener('click', (e) => {
+            if (e.target === contentModal) {
+                contentModal.classList.remove('active');
+            }
+        });
+    }
 
-// Rota final "catch-all" para lidar com qualquer outra requisição,
-// talvez redirecionando para a página de login.
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'login.html'));
-});
+    // ===============================================
+    // FUNÇÕES DE RENDERIZAÇÃO DE PÁGINA
+    // ===============================================
+    
+    function renderDashboard() {
+        contentHeader.innerHTML = '<h1>Dashboard</h1>';
+        contentBody.innerHTML = `<h2>Seja bem-vindo(a) de volta, ${currentUser.email}!</h2><p>Clique em "Meus Cursos" no menu para começar a estudar.</p>`;
+    }
 
+    async function renderMyCourses() {
+        contentHeader.innerHTML = '<h1>Meus Cursos</h1>';
+        contentBody.innerHTML = `<p>Carregando seus cursos...</p>`;
+        try {
+            const response = await fetch(`/api/alunos/${currentUser.id}/cursos`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error('Não foi possível carregar seus cursos.');
+            const result = await response.json();
+            
+            if (result.data.length === 0) {
+                contentBody.innerHTML = '<h3>Você ainda não está inscrito em nenhum curso.</h3>';
+                return;
+            }
+            
+            const coursesHtml = result.data.map(course => `
+                <div class="course-card-student" data-course-id="${course.id}" data-course-name="${course.name}">
+                    <h3>${course.name}</h3>
+                    <p>${course.description || 'Sem descrição.'}</p>
+                </div>
+            `).join('');
+            contentBody.innerHTML = `<div class="course-grid">${coursesHtml}</div>`;
 
-// --- INICIA O SERVIDOR ---
-app.listen(port, () => {
-    console.log(`Servidor rodando na porta ${port}`);
-    createTables();
+        } catch (error) {
+            contentBody.innerHTML = `<p style="color: red;">${error.message}</p>`;
+        }
+    }
+    
+    async function renderCourseLessons(courseId, courseName) {
+        contentHeader.innerHTML = `<h1>${courseName}</h1>`;
+        contentBody.innerHTML = `<p>Carregando aulas...</p>`;
+        try {
+            const response = await fetch(`/api/alunos/${currentUser.id}/cursos/${courseId}/aulas`, {
+                 headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error('Não foi possível carregar as aulas.');
+            const result = await response.json();
+
+            const lessonsHtml = result.data.map(lesson => `
+                <li class="lesson-item ${lesson.concluida ? 'concluida' : ''}">
+                    <span>${lesson.titulo}</span>
+                    <button class="view-content-btn" 
+                            data-tipo="${lesson.tipo}" 
+                            data-conteudo="${lesson.conteudo}" 
+                            data-titulo="${lesson.titulo}">
+                        Acessar Conteúdo
+                    </button>
+                </li>
+            `).join('');
+
+            contentBody.innerHTML = `
+                <div class="back-button" data-view="meus-cursos">← Voltar para Meus Cursos</div>
+                <ul class="lesson-list">${lessonsHtml}</ul>
+            `;
+        } catch(error) {
+            contentBody.innerHTML = `<p style="color: red;">${error.message}</p>`;
+        }
+    }
+    
+    // ===============================================
+    // LÓGICA DE NAVEGAÇÃO E EVENTOS
+    // ===============================================
+
+    function handleNavClick(event) {
+        event.preventDefault();
+        const clickedItem = event.currentTarget;
+        const view = clickedItem.dataset.view;
+
+        if (view === 'logout') { handleLogout(); return; }
+
+        navItems.forEach(item => item.classList.remove('active'));
+        clickedItem.classList.add('active');
+        
+        switch (view) {
+            case 'dashboard': renderDashboard(); break;
+            case 'meus-cursos': renderMyCourses(); break;
+            // Adicione os outros casos aqui
+            default: 
+                contentHeader.innerHTML = `<h1>${clickedItem.querySelector('span:last-child').textContent}</h1>`;
+                contentBody.innerHTML = `<p>Seção em desenvolvimento.</p>`;
+        }
+    }
+
+    // Listener de eventos delegado para o corpo do conteúdo
+    mainContent.addEventListener('click', (event) => {
+        const target = event.target;
+        // Para o botão de "Acessar Conteúdo"
+        if (target.classList.contains('view-content-btn')) {
+            const button = target;
+            showContentInModal(button.dataset.tipo, button.dataset.conteudo, button.dataset.titulo);
+        }
+        // Para o botão de "Voltar para Meus Cursos"
+        else if (target.classList.contains('back-button')) {
+            document.querySelector('[data-view=meus-cursos]').click();
+        }
+        // Para os cards de curso
+        else {
+            const courseCard = target.closest('.course-card-student');
+            if(courseCard){
+                renderCourseLessons(courseCard.dataset.courseId, courseCard.dataset.courseName);
+            }
+        }
+    });
+
+    // ===============================================
+    // FUNÇÃO PRINCIPAL DE INICIALIZAÇÃO
+    // ===============================================
+
+    function init() {
+        token = localStorage.getItem('studentToken');
+        if (!token) {
+            handleLogout(); return;
+        }
+
+        currentUser = decodeJwt(token);
+        if (!currentUser || currentUser.role !== 'student') {
+            handleLogout(); return;
+        }
+
+        navItems.forEach(item => item.addEventListener('click', handleNavClick));
+        renderDashboard(); // Começa na Dashboard
+        
+        // Adiciona um estilo dinâmico para os botões parecerem links
+        const style = document.createElement('style');
+        style.innerHTML = `.view-content-btn { background: none; border: none; color: var(--cor-primaria); font-weight: 600; cursor: pointer; font-size: 1em; font-family: 'Inter', sans-serif; padding: 0; }`;
+        document.head.appendChild(style);
+    }
+
+    init();
 });
