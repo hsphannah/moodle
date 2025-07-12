@@ -1,4 +1,4 @@
-// --- ARQUIVO: portal.js ---
+// --- ARQUIVO: portal.js (Versão focada no Aluno) ---
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -10,28 +10,18 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentUser = null;
     let token = null;
 
-    // Decodifica o JWT para pegar as informações do usuário
-    function decodeJwt(token) {
-        try {
-            return JSON.parse(atob(token.split('.')[1]));
-        } catch (e) {
-            return null;
-        }
-    }
+    function decodeJwt(token) { try { return JSON.parse(atob(token.split('.')[1])); } catch (e) { return null; } }
+    function handleLogout() { localStorage.removeItem('studentToken'); window.location.href = 'login.html'; }
 
-    // Função de Logout
-    function handleLogout() {
-        localStorage.removeItem('studentToken');
-        window.location.href = 'login.html';
-    }
-
-    // --- Funções para renderizar o conteúdo de cada página ---
+    // --- Funções de Renderização ---
 
     function renderDashboard() {
-        contentBody.innerHTML = `<h2>Seja bem-vindo(a) de volta!</h2><p>Este é o seu painel de acompanhamento.</p>`;
+        contentHeader.innerHTML = '<h1>Dashboard</h1>';
+        contentBody.innerHTML = `<h2>Seja bem-vindo(a) de volta!</h2><p>Clique em "Meus Cursos" para começar a estudar.</p>`;
     }
 
     async function renderMyCourses() {
+        contentHeader.innerHTML = '<h1>Meus Cursos</h1>';
         contentBody.innerHTML = `<p>Carregando seus cursos...</p>`;
         try {
             const response = await fetch(`/api/alunos/${currentUser.id}/cursos`, {
@@ -40,80 +30,89 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error('Não foi possível carregar seus cursos.');
             const result = await response.json();
             
-            // Aqui você pode adicionar a lógica para mostrar os cursos em cards
-            contentBody.innerHTML = `<h3>Cursos em que você está inscrito:</h3><pre>${JSON.stringify(result.data, null, 2)}</pre>`;
+            if (result.data.length === 0) {
+                contentBody.innerHTML = '<p>Você ainda não está inscrito em nenhum curso.</p>';
+                return;
+            }
+            
+            const coursesHtml = result.data.map(course => `
+                <div class="course-card-student" data-course-id="${course.id}" data-course-name="${course.name}">
+                    <h3>${course.name}</h3>
+                    <p>${course.description}</p>
+                </div>
+            `).join('');
+            contentBody.innerHTML = `<div class="course-grid">${coursesHtml}</div>`;
+
+            // Adiciona evento de clique para cada card de curso
+            document.querySelectorAll('.course-card-student').forEach(card => {
+                card.addEventListener('click', () => {
+                    const courseId = card.dataset.courseId;
+                    const courseName = card.dataset.courseName;
+                    renderCourseLessons(courseId, courseName);
+                });
+            });
+
         } catch (error) {
             contentBody.innerHTML = `<p style="color: red;">${error.message}</p>`;
         }
     }
     
-    async function renderMyProgress() {
-        contentBody.innerHTML = `<p>Carregando seu progresso...</p>`;
-         try {
-            const response = await fetch(`/api/alunos/${currentUser.id}/progresso`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+    async function renderCourseLessons(courseId, courseName) {
+        contentHeader.innerHTML = `<h1>${courseName}</h1>`;
+        contentBody.innerHTML = `<p>Carregando aulas...</p>`;
+        try {
+            const response = await fetch(`/api/alunos/${currentUser.id}/cursos/${courseId}/aulas`, {
+                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            if (!response.ok) throw new Error('Não foi possível carregar seu progresso.');
+            if (!response.ok) throw new Error('Não foi possível carregar as aulas.');
             const result = await response.json();
 
-            // Lógica para mostrar as barras de progresso
-            contentBody.innerHTML = `<h3>Seu progresso:</h3><pre>${JSON.stringify(result.data, null, 2)}</pre>`;
-        } catch (error) {
+            const lessonsHtml = result.data.map(lesson => `
+                <li class="lesson-item ${lesson.concluida ? 'concluida' : ''}">
+                    <span>${lesson.titulo}</span>
+                    <a href="${lesson.conteudo}" target="_blank">Acessar Conteúdo</a>
+                </li>
+            `).join('');
+
+            contentBody.innerHTML = `
+                <div class="back-button" onclick="document.querySelector('[data-view=meus-cursos]').click()">&larr; Voltar para Meus Cursos</div>
+                <ul class="lesson-list">${lessonsHtml}</ul>
+            `;
+        } catch(error) {
             contentBody.innerHTML = `<p style="color: red;">${error.message}</p>`;
         }
     }
     
     // --- Lógica de Navegação ---
-    
     function handleNavClick(event) {
         event.preventDefault();
         const clickedItem = event.currentTarget;
         const view = clickedItem.dataset.view;
 
-        if (view === 'logout') {
-            handleLogout();
-            return;
-        }
+        if (view === 'logout') { handleLogout(); return; }
 
         navItems.forEach(item => item.classList.remove('active'));
         clickedItem.classList.add('active');
         
-        contentHeader.querySelector('h1').textContent = clickedItem.querySelector('span:last-child').textContent;
-
         switch (view) {
             case 'dashboard': renderDashboard(); break;
             case 'meus-cursos': renderMyCourses(); break;
-            case 'meu-progresso': renderMyProgress(); break;
             // Adicione os outros casos aqui
-            default: contentBody.innerHTML = `<p>Seção em desenvolvimento.</p>`;
+            default: 
+                contentHeader.innerHTML = `<h1>${clickedItem.querySelector('span:last-child').textContent}</h1>`;
+                contentBody.innerHTML = `<p>Seção em desenvolvimento.</p>`;
         }
     }
 
     // --- Função Principal de Inicialização ---
-
     function init() {
         token = localStorage.getItem('studentToken');
-        if (!token) {
-            handleLogout(); // Se não há token de aluno, volta para o login
-            return;
-        }
-
+        if (!token) { handleLogout(); return; }
         currentUser = decodeJwt(token);
-        // Se o token for inválido ou não for de um aluno, volta para o login
-        if (!currentUser || currentUser.role !== 'student') {
-            handleLogout();
-            return;
-        }
+        if (!currentUser || currentUser.role !== 'student') { handleLogout(); return; }
 
-        // Insere o título H1 inicial na página
-        contentHeader.innerHTML = '<h1>Dashboard</h1>';
-
-        // Adiciona os eventos de clique na navegação
         navItems.forEach(item => item.addEventListener('click', handleNavClick));
-
-        // Renderiza a view inicial do dashboard
-        renderDashboard();
+        renderDashboard(); // Começa na Dashboard
     }
-
     init();
 });
