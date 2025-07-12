@@ -37,21 +37,26 @@ const upload = multer({ storage: storage });
 
 // Função para criar as tabelas
 const createTables = async () => {
-    const queries = [
-        `CREATE TABLE IF NOT EXISTS cursos (id SERIAL PRIMARY KEY, name TEXT NOT NULL, description TEXT);`,
-        `CREATE TABLE IF NOT EXISTS alunos (id SERIAL PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL);`,
-        `CREATE TABLE IF NOT EXISTS admins (id SERIAL PRIMARY KEY, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL);`,
-        `CREATE TABLE IF NOT EXISTS inscricoes (id SERIAL PRIMARY KEY, aluno_id INTEGER NOT NULL REFERENCES alunos(id) ON DELETE CASCADE, curso_id INTEGER NOT NULL REFERENCES cursos(id) ON DELETE CASCADE, UNIQUE(aluno_id, curso_id));`,
-        `CREATE TABLE IF NOT EXISTS aulas (id SERIAL PRIMARY KEY, titulo TEXT NOT NULL, tipo TEXT NOT NULL, conteudo TEXT NOT NULL, curso_id INTEGER NOT NULL REFERENCES cursos(id) ON DELETE CASCADE);`,
-        `CREATE TABLE IF NOT EXISTS progresso (id SERIAL PRIMARY KEY, aluno_id INTEGER NOT NULL REFERENCES alunos(id) ON DELETE CASCADE, aula_id INTEGER NOT NULL REFERENCES aulas(id) ON DELETE CASCADE, UNIQUE(aluno_id, aula_id));`
-    ];
     try {
+        // ESTA É A LINHA CRUCIAL QUE FORÇA A LIMPEZA E ATUALIZAÇÃO
+        await pool.query('DROP TABLE IF EXISTS alunos CASCADE');
+
+        // O resto do código recria tudo do zero com a estrutura correta
+        const queries = [
+            `CREATE TABLE IF NOT EXISTS cursos (id SERIAL PRIMARY KEY, name TEXT NOT NULL, description TEXT);`,
+            `CREATE TABLE IF NOT EXISTS alunos (id SERIAL PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL);`,
+            `CREATE TABLE IF NOT EXISTS admins (id SERIAL PRIMARY KEY, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL);`,
+            `CREATE TABLE IF NOT EXISTS inscricoes (id SERIAL PRIMARY KEY, aluno_id INTEGER NOT NULL REFERENCES alunos(id) ON DELETE CASCADE, curso_id INTEGER NOT NULL REFERENCES cursos(id) ON DELETE CASCADE, UNIQUE(aluno_id, curso_id));`,
+            `CREATE TABLE IF NOT EXISTS aulas (id SERIAL PRIMARY KEY, titulo TEXT NOT NULL, tipo TEXT NOT NULL, conteudo TEXT NOT NULL, curso_id INTEGER NOT NULL REFERENCES cursos(id) ON DELETE CASCADE);`,
+            `CREATE TABLE IF NOT EXISTS progresso (id SERIAL PRIMARY KEY, aluno_id INTEGER NOT NULL REFERENCES alunos(id) ON DELETE CASCADE, aula_id INTEGER NOT NULL REFERENCES aulas(id) ON DELETE CASCADE, UNIQUE(aluno_id, aula_id));`
+        ];
+
         for (const query of queries) {
             await pool.query(query);
         }
-        console.log("Tabelas verificadas/criadas com sucesso no PostgreSQL.");
+        console.log("Tabelas recriadas com sucesso no PostgreSQL.");
     } catch (err) {
-        console.error("Erro fatal ao criar as tabelas:", err);
+        console.error("Erro fatal ao recriar as tabelas:", err);
     }
 };
 
