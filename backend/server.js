@@ -22,7 +22,7 @@ const pool = new Pool({
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Middlewares
+// Middlewares Essenciais
 app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -54,6 +54,7 @@ const createTables = async () => {
     }
 };
 
+// Middleware de Autenticação
 const authenticateToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
@@ -62,15 +63,30 @@ const authenticateToken = (req, res, next) => {
 };
 
 // ===========================================
-// == TODAS AS ROTAS DE API VÊM AQUI AGORA ==
+// == ROTAS DE API (ANTES DOS ARQUIVOS ESTÁTICOS) ==
 // ===========================================
 
-// == Rota de Health Check para o Render ==
+// Rota de Health Check para o Render
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok' });
 });
 
-// == ROTAS DE AUTENTICAÇÃO SEPARADAS ==
+// ROTAS DE AUTENTICAÇÃO
+app.post('/api/register', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        if (!email || !password) return res.status(400).json({ error: "Email e senha são obrigatórios." });
+        const hash = await bcrypt.hash(password, saltRounds);
+        const sql = 'INSERT INTO admins (email, password_hash) VALUES ($1, $2) RETURNING id';
+        const result = await pool.query(sql, [email, hash]);
+        res.status(201).json({ message: "Administrador registrado com sucesso!", userId: result.rows[0].id });
+    } catch (err) {
+        console.error(err);
+        if (err.code === '23505') return res.status(409).json({ error: "Este email já está em uso." });
+        res.status(500).json({ error: "Erro interno do servidor." });
+    }
+});
+
 app.post('/api/admin/login', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -107,29 +123,14 @@ app.post('/api/alunos/login', async (req, res) => {
     } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
 });
 
-app.post('/api/register', async (req, res) => {
-    try {
-        const { email, password } = req.body;
-        if (!email || !password) return res.status(400).json({ error: "Email e senha são obrigatórios." });
-        const hash = await bcrypt.hash(password, saltRounds);
-        const sql = 'INSERT INTO admins (email, password_hash) VALUES ($1, $2) RETURNING id';
-        const result = await pool.query(sql, [email, hash]);
-        res.status(201).json({ message: "Administrador registrado com sucesso!", userId: result.rows[0].id });
-    } catch (err) {
-        console.error(err);
-        if (err.code === '23505') return res.status(409).json({ error: "Este email já está em uso." });
-        res.status(500).json({ error: "Erro interno do servidor." });
-    }
-});
 
-// == CURSOS ==
+// ROTAS DE CURSOS
 app.get('/api/cursos', async (req, res) => {
     try {
         const result = await pool.query("SELECT * FROM cursos ORDER BY name");
         res.json({ message: "success", data: result.rows });
     } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
 });
-
 app.get('/api/cursos/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
@@ -138,7 +139,6 @@ app.get('/api/cursos/:id', authenticateToken, async (req, res) => {
         res.json({ message: "success", data: result.rows[0] });
     } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
 });
-
 app.post('/api/cursos', authenticateToken, async (req, res) => {
     try {
         const { name, description } = req.body;
@@ -148,7 +148,6 @@ app.post('/api/cursos', authenticateToken, async (req, res) => {
         res.status(201).json({ message: "Curso criado com sucesso!", data: result.rows[0] });
     } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
 });
-
 app.put('/api/cursos/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
@@ -160,7 +159,6 @@ app.put('/api/cursos/:id', authenticateToken, async (req, res) => {
         res.json({ message: "Curso atualizado com sucesso!", data: result.rows[0] });
     } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
 });
-
 app.delete('/api/cursos/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
@@ -169,7 +167,6 @@ app.delete('/api/cursos/:id', authenticateToken, async (req, res) => {
         res.json({ message: "Curso e todos os seus dados associados foram excluídos com sucesso!" });
     } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
 });
-
 app.get('/api/cursos/:id/alunos', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
@@ -179,14 +176,13 @@ app.get('/api/cursos/:id/alunos', authenticateToken, async (req, res) => {
     } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
 });
 
-// == ALUNOS ==
+// ROTAS DE ALUNOS
 app.get('/api/alunos', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query("SELECT * FROM alunos ORDER BY name");
         res.json({ message: "success", data: result.rows });
     } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
 });
-
 app.get('/api/alunos/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
@@ -195,7 +191,6 @@ app.get('/api/alunos/:id', authenticateToken, async (req, res) => {
         res.json({ message: "success", data: result.rows[0] });
     } catch(err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
 });
-
 app.post('/api/alunos', authenticateToken, async (req, res) => {
     const { name, email, password, curso_id } = req.body;
     if (!name || !email || !password) {
@@ -223,7 +218,6 @@ app.post('/api/alunos', authenticateToken, async (req, res) => {
         client.release();
     }
 });
-
 app.put('/api/alunos/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
@@ -239,7 +233,6 @@ app.put('/api/alunos/:id', authenticateToken, async (req, res) => {
         res.status(500).json({ error: "Erro interno do servidor." });
     }
 });
-
 app.delete('/api/alunos/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
@@ -249,7 +242,7 @@ app.delete('/api/alunos/:id', authenticateToken, async (req, res) => {
     } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
 });
 
-// == AULAS ==
+// ROTAS DE AULAS
 app.get('/api/cursos/:curso_id/aulas', authenticateToken, async (req, res) => {
     try {
         const { curso_id } = req.params;
@@ -257,7 +250,6 @@ app.get('/api/cursos/:curso_id/aulas', authenticateToken, async (req, res) => {
         res.json({ message: "Aulas listadas com sucesso", data: result.rows });
     } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
 });
-
 app.get('/api/aulas/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
@@ -266,7 +258,6 @@ app.get('/api/aulas/:id', authenticateToken, async (req, res) => {
         res.json({ message: "Aula encontrada com sucesso", data: result.rows[0] });
     } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
 });
-
 app.post('/api/aulas', authenticateToken, upload.single('conteudo'), async (req, res) => {
     try {
         const { titulo, tipo, curso_id } = req.body;
@@ -277,7 +268,6 @@ app.post('/api/aulas', authenticateToken, upload.single('conteudo'), async (req,
         res.status(201).json({ message: "Aula criada com sucesso", data: { id: result.rows[0].id } });
     } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
 });
-
 app.put('/api/aulas/:id', authenticateToken, upload.single('conteudo'), async (req, res) => {
     try {
         const { id } = req.params;
@@ -290,7 +280,6 @@ app.put('/api/aulas/:id', authenticateToken, upload.single('conteudo'), async (r
         res.json({ message: "Aula atualizada com sucesso" });
     } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
 });
-
 app.delete('/api/aulas/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
@@ -300,7 +289,7 @@ app.delete('/api/aulas/:id', authenticateToken, async (req, res) => {
     } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
 });
 
-// == INSCRIÇÕES E PROGRESSO ==
+// ROTAS DE INSCRIÇÕES E PROGRESSO
 app.get('/api/alunos/:id/cursos', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
@@ -309,7 +298,6 @@ app.get('/api/alunos/:id/cursos', authenticateToken, async (req, res) => {
         res.json({ message: "success", data: result.rows });
     } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
 });
-
 app.get('/api/alunos/:aluno_id/cursos/:curso_id/aulas', authenticateToken, async (req, res) => {
     try {
         const { aluno_id, curso_id } = req.params;
@@ -318,7 +306,6 @@ app.get('/api/alunos/:aluno_id/cursos/:curso_id/aulas', authenticateToken, async
         res.json({ message: "Aulas do curso com progresso", data: result.rows });
     } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
 });
-
 app.post('/api/inscricoes', authenticateToken, async (req, res) => {
     try {
         const { aluno_id, curso_id } = req.body;
@@ -332,7 +319,6 @@ app.post('/api/inscricoes', authenticateToken, async (req, res) => {
         res.status(500).json({ error: "Erro interno do servidor." });
     }
 });
-
 app.delete('/api/inscricoes', authenticateToken, async (req, res) => {
     try {
         const { aluno_id, curso_id } = req.body;
@@ -346,7 +332,6 @@ app.delete('/api/inscricoes', authenticateToken, async (req, res) => {
         res.status(500).json({ error: "Erro interno do servidor." });
     }
 });
-
 app.post('/api/progresso', authenticateToken, async (req, res) => {
     try {
         const { aluno_id, aula_id } = req.body;
@@ -359,7 +344,6 @@ app.post('/api/progresso', authenticateToken, async (req, res) => {
         res.status(500).json({ error: "Erro interno do servidor." });
     }
 });
-
 app.get('/api/alunos/:id/progresso', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
@@ -381,7 +365,6 @@ app.get('/api/alunos/:id/progresso', authenticateToken, async (req, res) => {
     }
 });
 
-
 // ==============================================================
 // == AS ROTAS DE ARQUIVOS ESTÁTICOS VÊM POR ÚLTIMO ==
 // ==============================================================
@@ -389,7 +372,6 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'login.html'));
 });
 app.use(express.static(__dirname));
-
 
 // --- INICIA O SERVIDOR ---
 app.listen(port, () => {
