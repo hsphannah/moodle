@@ -1,234 +1,396 @@
-// --- ARQUIVO: portal.js (Versão Completa para o Aluno) ---
+// --- ARQUIVO: server.js ---
 
-document.addEventListener('DOMContentLoaded', () => {
+const express = require('express');
+const cors = require('cors');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const path = require('path');
+const { Pool } = require('pg');
 
-    // ===============================================
-    // SELETORES GLOBAIS
-    // ===============================================
-    const mainContent = document.querySelector('.main-content');
-    const contentHeader = mainContent.querySelector('.content-header');
-    const contentBody = mainContent.querySelector('.content-body');
-    const navItems = document.querySelectorAll('.nav-item');
+require('dotenv').config();
 
-    // Modal de Conteúdo
-    const contentModal = document.getElementById('content-viewer-modal');
-    const modalTitle = document.getElementById('modal-content-title');
-    const modalBody = document.getElementById('modal-content-body');
-    const closeModalBtn = document.getElementById('modal-close-btn');
+const app = express();
+const port = process.env.PORT || 3000;
+const saltRounds = 10;
 
-    let currentUser = null;
-    let token = null;
+const JWT_SECRET = process.env.JWT_SECRET || 'seu_segredo_local_super_secreto_e_forte';
+const DATABASE_URL = process.env.DATABASE_URL;
 
-    // ===============================================
-    // FUNÇÕES DE UTILIDADE E AUTENTICAÇÃO
-    // ===============================================
-    
-    // Decodifica o JWT para pegar as informações do usuário
-    function decodeJwt(token) {
-        try {
-            return JSON.parse(atob(token.split('.')[1]));
-        } catch (e) {
-            console.error("Token inválido ou corrompido:", e);
-            return null;
+const pool = new Pool({
+    connectionString: DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
+
+// ===========================================
+// == MIDDLEWARES ESSENCIAIS (SEÇÃO ATUALIZADA) ==
+// ===========================================
+app.use(cors());
+app.use(express.json());
+
+// Logger simples para vermos todas as requisições no log do Render
+app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] Recebida requisição: ${req.method} ${req.path}`);
+    next();
+});
+
+// SERVINDO ARQUIVOS ESTÁTICOS DA PASTA UPLOADS (com a correção)
+// Usamos path.resolve para criar um caminho absoluto a partir da raiz do projeto.
+const uploadsPath = path.resolve(__dirname, 'uploads');
+console.log(`Servindo arquivos estáticos da pasta: ${uploadsPath}`); // Isso vai te mostrar o caminho exato no log
+app.use('/uploads', express.static(uploadsPath));
+
+
+// Configuração do Multer
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => { cb(null, 'uploads/'); },
+    filename: (req, file, cb) => { cb(null, Date.now() + path.extname(file.originalname)); }
+});
+const upload = multer({ storage: storage });
+
+// Função para criar as tabelas
+const createTables = async () => {
+    const queries = [
+        `CREATE TABLE IF NOT EXISTS cursos (id SERIAL PRIMARY KEY, name TEXT NOT NULL, description TEXT);`,
+        `CREATE TABLE IF NOT EXISTS alunos (id SERIAL PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL);`,
+        `CREATE TABLE IF NOT EXISTS admins (id SERIAL PRIMARY KEY, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL);`,
+        `CREATE TABLE IF NOT EXISTS inscricoes (id SERIAL PRIMARY KEY, aluno_id INTEGER NOT NULL REFERENCES alunos(id) ON DELETE CASCADE, curso_id INTEGER NOT NULL REFERENCES cursos(id) ON DELETE CASCADE, UNIQUE(aluno_id, curso_id));`,
+        `CREATE TABLE IF NOT EXISTS aulas (id SERIAL PRIMARY KEY, titulo TEXT NOT NULL, tipo TEXT NOT NULL, conteudo TEXT NOT NULL, curso_id INTEGER NOT NULL REFERENCES cursos(id) ON DELETE CASCADE);`,
+        `CREATE TABLE IF NOT EXISTS progresso (id SERIAL PRIMARY KEY, aluno_id INTEGER NOT NULL REFERENCES alunos(id) ON DELETE CASCADE, aula_id INTEGER NOT NULL REFERENCES aulas(id) ON DELETE CASCADE, UNIQUE(aluno_id, aula_id));`
+    ];
+    try {
+        for (const query of queries) {
+            await pool.query(query);
         }
+        console.log("Tabelas verificadas/criadas com sucesso no PostgreSQL.");
+    } catch (err) {
+        console.error("Erro fatal ao criar as tabelas:", err);
     }
+};
 
-    // Função de Logout
-    function handleLogout() {
-        localStorage.removeItem('studentToken');
-        window.location.href = 'login.html';
+// Middleware de Autenticação
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (token == null) return res.sendStatus(401);
+    jwt.verify(token, JWT_SECRET, (err, user) => { if (err) return res.sendStatus(403); req.user = user; next(); });
+};
+
+// ===========================================
+// == ROTAS DE API ==
+// ===========================================
+
+// Rota de Health Check para o Render
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'ok' });
+});
+
+// ROTAS DE AUTENTICAÇÃO
+app.post('/api/register', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        if (!email || !password) return res.status(400).json({ error: "Email e senha são obrigatórios." });
+        const hash = await bcrypt.hash(password, saltRounds);
+        const sql = 'INSERT INTO admins (email, password_hash) VALUES ($1, $2) RETURNING id';
+        const result = await pool.query(sql, [email, hash]);
+        res.status(201).json({ message: "Administrador registrado com sucesso!", userId: result.rows[0].id });
+    } catch (err) {
+        console.error(err);
+        if (err.code === '23505') return res.status(409).json({ error: "Este email já está em uso." });
+        res.status(500).json({ error: "Erro interno do servidor." });
     }
+});
 
-    // ===============================================
-    // LÓGICA DO MODAL DE CONTEÚDO
-    // ===============================================
-
-    function showContentInModal(tipo, conteudo, titulo) {
-        if (!contentModal || !modalTitle || !modalBody) return;
-
-        modalTitle.textContent = titulo;
-        let contentHtml = '';
-
-        const tipoLower = tipo.toLowerCase();
-
-        if (tipoLower.includes('texto')) {
-            contentHtml = `<p>${conteudo.replace(/\n/g, '<br>')}</p>`;
-        } else if (tipoLower.includes('imagem')) {
-            contentHtml = `<img src="${conteudo}" alt="${titulo}">`;
-        } else if (tipoLower.includes('pdf')) {
-            contentHtml = `<iframe src="${conteudo}" width="100%" height="500px"></iframe>`;
-        } else if (tipoLower.includes('vídeo (upload)')) {
-            contentHtml = `<video controls autoplay width="100%"><source src="${conteudo}" type="video/mp4"></video>`;
-        } else if (tipoLower.includes('vídeo (link)')) {
-            let videoId = null;
-            try {
-                 const url = new URL(conteudo);
-                 if(url.hostname.includes('youtube.com') || url.hostname.includes('youtu.be')){
-                     videoId = url.searchParams.get('v') || url.pathname.split('/').pop();
-                 }
-            } catch(e) { console.error("URL de vídeo inválida");}
-            
-            if (videoId) {
-                contentHtml = `<iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
-            } else {
-                contentHtml = `<p>Link de vídeo inválido. <a href="${conteudo}" target="_blank">Abrir link original.</a></p>`;
-            }
+app.post('/api/admin/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        if (!email || !password) return res.status(400).json({ error: "Email e senha são obrigatórios." });
+        const result = await pool.query('SELECT * FROM admins WHERE email = $1', [email]);
+        const admin = result.rows[0];
+        if (!admin) return res.status(401).json({ error: "Credenciais inválidas." });
+        const match = await bcrypt.compare(password, admin.password_hash);
+        if (match) {
+            const payload = { id: admin.id, email: admin.email, role: 'admin' };
+            const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
+            res.json({ message: "Login de admin bem-sucedido!", token: token });
         } else {
-            contentHtml = `<p>Tipo de conteúdo não suportado. <a href="${conteudo}" target="_blank">Tentar abrir em nova aba.</a></p>`;
+            res.status(401).json({ error: "Credenciais inválidas." });
         }
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
+});
 
-        modalBody.innerHTML = contentHtml;
-        contentModal.classList.add('active');
+app.post('/api/alunos/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        if (!email || !password) return res.status(400).json({ error: "Email e senha são obrigatórios." });
+        const result = await pool.query('SELECT * FROM alunos WHERE email = $1', [email]);
+        const aluno = result.rows[0];
+        if (!aluno) return res.status(401).json({ error: "Credenciais inválidas." });
+        const match = await bcrypt.compare(password, aluno.password_hash);
+        if (match) {
+            const payload = { id: aluno.id, email: aluno.email, role: 'student' };
+            const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
+            res.json({ message: "Login de aluno bem-sucedido!", token: token });
+        } else {
+            res.status(401).json({ error: "Credenciais inválidas." });
+        }
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
+});
+
+
+// ROTAS DE CURSOS
+app.get('/api/cursos', async (req, res) => {
+    try {
+        const result = await pool.query("SELECT * FROM cursos ORDER BY name");
+        res.json({ message: "success", data: result.rows });
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
+});
+app.get('/api/cursos/:id', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await pool.query("SELECT * FROM cursos WHERE id = $1", [id]);
+        if (result.rowCount === 0) return res.status(404).json({ message: "Curso não encontrado." });
+        res.json({ message: "success", data: result.rows[0] });
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
+});
+app.post('/api/cursos', authenticateToken, async (req, res) => {
+    try {
+        const { name, description } = req.body;
+        if (!name || !description) return res.status(400).json({ error: "Nome e descrição são obrigatórios." });
+        const sql = 'INSERT INTO cursos (name, description) VALUES ($1, $2) RETURNING *';
+        const result = await pool.query(sql, [name, description]);
+        res.status(201).json({ message: "Curso criado com sucesso!", data: result.rows[0] });
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
+});
+app.put('/api/cursos/:id', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, description } = req.body;
+        if (!name || !description) return res.status(400).json({ error: "Nome e descrição são obrigatórios." });
+        const sql = 'UPDATE cursos SET name = $1, description = $2 WHERE id = $3 RETURNING *';
+        const result = await pool.query(sql, [name, description, id]);
+        if (result.rowCount === 0) return res.status(404).json({ message: "Curso não encontrado." });
+        res.json({ message: "Curso atualizado com sucesso!", data: result.rows[0] });
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
+});
+app.delete('/api/cursos/:id', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await pool.query('DELETE FROM cursos WHERE id = $1', [id]);
+        if (result.rowCount === 0) return res.status(404).json({ message: "Curso não encontrado." });
+        res.json({ message: "Curso e todos os seus dados associados foram excluídos com sucesso!" });
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
+});
+app.get('/api/cursos/:id/alunos', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const sql = `SELECT a.id, a.name, a.email FROM alunos a JOIN inscricoes i ON a.id = i.aluno_id WHERE i.curso_id = $1`;
+        const result = await pool.query(sql, [id]);
+        res.json({ message: "success", data: result.rows });
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
+});
+
+// ROTAS DE ALUNOS
+app.get('/api/alunos', authenticateToken, async (req, res) => {
+    try {
+        const result = await pool.query("SELECT * FROM alunos ORDER BY name");
+        res.json({ message: "success", data: result.rows });
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
+});
+app.get('/api/alunos/:id', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await pool.query("SELECT * FROM alunos WHERE id = $1", [id]);
+        if (result.rowCount === 0) return res.status(404).json({ message: "Aluno não encontrado." });
+        res.json({ message: "success", data: result.rows[0] });
+    } catch(err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
+});
+app.post('/api/alunos', authenticateToken, async (req, res) => {
+    const { name, email, password, curso_id } = req.body;
+    if (!name || !email || !password) {
+        return res.status(400).json({ error: "Nome, email e senha são obrigatórios." });
     }
-
-    // Adiciona listeners para fechar o modal
-    if (closeModalBtn) {
-        closeModalBtn.addEventListener('click', () => contentModal.classList.remove('active'));
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const hash = await bcrypt.hash(password, saltRounds);
+        const alunoSql = 'INSERT INTO alunos (name, email, password_hash) VALUES ($1, $2, $3) RETURNING id';
+        const alunoResult = await client.query(alunoSql, [name, email, hash]);
+        const novoAlunoId = alunoResult.rows[0].id;
+        if (curso_id) {
+            const inscricaoSql = 'INSERT INTO inscricoes (aluno_id, curso_id) VALUES ($1, $2)';
+            await client.query(inscricaoSql, [novoAlunoId, curso_id]);
+        }
+        await client.query('COMMIT');
+        res.status(201).json({ message: "Aluno criado com sucesso!", data: { id: novoAlunoId, name, email } });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error(err);
+        if (err.code === '23505') return res.status(409).json({ error: "Este email já está em uso." });
+        res.status(500).json({ error: "Erro interno do servidor." });
+    } finally {
+        client.release();
     }
-    if (contentModal) {
-        contentModal.addEventListener('click', (e) => {
-            if (e.target === contentModal) {
-                contentModal.classList.remove('active');
-            }
-        });
+});
+app.put('/api/alunos/:id', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, email } = req.body;
+        if (!name || !email) return res.status(400).json({ error: "Nome e email são obrigatórios." });
+        const sql = 'UPDATE alunos SET name = $1, email = $2 WHERE id = $3 RETURNING *';
+        const result = await pool.query(sql, [name, email, id]);
+        if (result.rowCount === 0) return res.status(404).json({ message: "Aluno não encontrado." });
+        res.json({ message: "Aluno atualizado com sucesso!", data: result.rows[0] });
+    } catch (err) {
+        console.error(err);
+        if (err.code === '23505') return res.status(409).json({ error: "Este email já está em uso." });
+        res.status(500).json({ error: "Erro interno do servidor." });
     }
+});
+app.delete('/api/alunos/:id', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await pool.query('DELETE FROM alunos WHERE id = $1', [id]);
+        if (result.rowCount === 0) return res.status(404).json({ message: "Aluno não encontrado." });
+        res.json({ message: "Aluno e todos os seus dados associados foram excluídos com sucesso!" });
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
+});
 
-    // ===============================================
-    // FUNÇÕES DE RENDERIZAÇÃO DE PÁGINA
-    // ===============================================
-    
-    function renderDashboard() {
-        contentHeader.innerHTML = '<h1>Dashboard</h1>';
-        contentBody.innerHTML = `<h2>Seja bem-vindo(a) de volta, ${currentUser.email}!</h2><p>Clique em "Meus Cursos" no menu para começar a estudar.</p>`;
+// ROTAS DE AULAS
+app.get('/api/cursos/:curso_id/aulas', authenticateToken, async (req, res) => {
+    try {
+        const { curso_id } = req.params;
+        const result = await pool.query("SELECT * FROM aulas WHERE curso_id = $1 ORDER BY id", [curso_id]);
+        res.json({ message: "Aulas listadas com sucesso", data: result.rows });
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
+});
+app.get('/api/aulas/:id', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await pool.query("SELECT * FROM aulas WHERE id = $1", [id]);
+        if (result.rowCount === 0) return res.status(404).json({ message: "Aula não encontrada." });
+        res.json({ message: "Aula encontrada com sucesso", data: result.rows[0] });
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
+});
+app.post('/api/aulas', authenticateToken, upload.single('conteudo'), async (req, res) => {
+    try {
+        const { titulo, tipo, curso_id } = req.body;
+        const conteudo = req.file ? `/uploads/${req.file.filename}` : req.body.conteudo;
+        if (!titulo || !tipo || !conteudo || !curso_id) return res.status(400).json({ error: "Todos os campos são obrigatórios." });
+        const sql = "INSERT INTO aulas (titulo, tipo, conteudo, curso_id) VALUES ($1, $2, $3, $4) RETURNING id";
+        const result = await pool.query(sql, [titulo, tipo, conteudo, curso_id]);
+        res.status(201).json({ message: "Aula criada com sucesso", data: { id: result.rows[0].id } });
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
+});
+app.put('/api/aulas/:id', authenticateToken, upload.single('conteudo'), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { titulo, tipo } = req.body;
+        const conteudo = req.file ? `/uploads/${req.file.filename}` : req.body.conteudo;
+        if (!titulo || !tipo || !conteudo) return res.status(400).json({ error: "Todos os campos são obrigatórios." });
+        const sql = "UPDATE aulas SET titulo = $1, tipo = $2, conteudo = $3 WHERE id = $4";
+        const result = await pool.query(sql, [titulo, tipo, conteudo, id]);
+        if (result.rowCount === 0) return res.status(404).json({ message: "Aula não encontrada." });
+        res.json({ message: "Aula atualizada com sucesso" });
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
+});
+app.delete('/api/aulas/:id', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await pool.query("DELETE FROM aulas WHERE id = $1", [id]);
+        if (result.rowCount === 0) return res.status(404).json({ message: "Aula não encontrada." });
+        res.json({ message: "Aula excluída com sucesso" });
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
+});
+
+// ROTAS DE INSCRIÇÕES E PROGRESSO
+app.get('/api/alunos/:id/cursos', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const sql = `SELECT c.id, c.name, c.description FROM cursos c JOIN inscricoes i ON c.id = i.curso_id WHERE i.aluno_id = $1`;
+        const result = await pool.query(sql, [id]);
+        res.json({ message: "success", data: result.rows });
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
+});
+app.get('/api/alunos/:aluno_id/cursos/:curso_id/aulas', authenticateToken, async (req, res) => {
+    try {
+        const { aluno_id, curso_id } = req.params;
+        const sql = ` SELECT a.id, a.titulo, a.tipo, a.conteudo, CASE WHEN p.id IS NOT NULL THEN true ELSE false END as concluida FROM aulas a LEFT JOIN progresso p ON a.id = p.aula_id AND p.aluno_id = $1 WHERE a.curso_id = $2 ORDER BY a.id`;
+        const result = await pool.query(sql, [aluno_id, curso_id]);
+        res.json({ message: "Aulas do curso com progresso", data: result.rows });
+    } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); }
+});
+app.post('/api/inscricoes', authenticateToken, async (req, res) => {
+    try {
+        const { aluno_id, curso_id } = req.body;
+        if (!aluno_id || !curso_id) return res.status(400).json({ error: "ID do aluno e do curso são obrigatórios." });
+        const sql = 'INSERT INTO inscricoes (aluno_id, curso_id) VALUES ($1, $2)';
+        await pool.query(sql, [aluno_id, curso_id]);
+        res.status(201).json({ message: "Inscrição realizada com sucesso!" });
+    } catch (err) {
+        if(err.code === '23505') return res.status(409).json({ message: "O aluno já está inscrito neste curso." });
+        console.error(err);
+        res.status(500).json({ error: "Erro interno do servidor." });
     }
-
-    async function renderMyCourses() {
-        contentHeader.innerHTML = '<h1>Meus Cursos</h1>';
-        contentBody.innerHTML = `<p>Carregando seus cursos...</p>`;
-        try {
-            const response = await fetch(`/api/alunos/${currentUser.id}/cursos`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (!response.ok) throw new Error('Não foi possível carregar seus cursos.');
-            const result = await response.json();
-            
-            if (result.data.length === 0) {
-                contentBody.innerHTML = '<h3>Você ainda não está inscrito em nenhum curso.</h3>';
-                return;
-            }
-            
-            const coursesHtml = result.data.map(course => `
-                <div class="course-card-student" data-course-id="${course.id}" data-course-name="${course.name}">
-                    <h3>${course.name}</h3>
-                    <p>${course.description || 'Sem descrição.'}</p>
-                </div>
-            `).join('');
-            contentBody.innerHTML = `<div class="course-grid">${coursesHtml}</div>`;
-
-        } catch (error) {
-            contentBody.innerHTML = `<p style="color: red;">${error.message}</p>`;
-        }
+});
+app.delete('/api/inscricoes', authenticateToken, async (req, res) => {
+    try {
+        const { aluno_id, curso_id } = req.body;
+        if (!aluno_id || !curso_id) return res.status(400).json({ error: "ID do aluno e do curso são obrigatórios." });
+        const sql = 'DELETE FROM inscricoes WHERE aluno_id = $1 AND curso_id = $2';
+        const result = await pool.query(sql, [aluno_id, curso_id]);
+        if (result.rowCount === 0) return res.status(404).json({ message: "Inscrição não encontrada." });
+        res.json({ message: 'Inscrição removida com sucesso!' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Erro interno do servidor." });
     }
-    
-    async function renderCourseLessons(courseId, courseName) {
-        contentHeader.innerHTML = `<h1>${courseName}</h1>`;
-        contentBody.innerHTML = `<p>Carregando aulas...</p>`;
-        try {
-            const response = await fetch(`/api/alunos/${currentUser.id}/cursos/${courseId}/aulas`, {
-                 headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (!response.ok) throw new Error('Não foi possível carregar as aulas.');
-            const result = await response.json();
-
-            const lessonsHtml = result.data.map(lesson => `
-                <li class="lesson-item ${lesson.concluida ? 'concluida' : ''}">
-                    <span>${lesson.titulo}</span>
-                    <button class="view-content-btn" 
-                            data-tipo="${lesson.tipo}" 
-                            data-conteudo="${lesson.conteudo}" 
-                            data-titulo="${lesson.titulo}">
-                        Acessar Conteúdo
-                    </button>
-                </li>
-            `).join('');
-
-            contentBody.innerHTML = `
-                <div class="back-button" data-view="meus-cursos">← Voltar para Meus Cursos</div>
-                <ul class="lesson-list">${lessonsHtml}</ul>
-            `;
-        } catch(error) {
-            contentBody.innerHTML = `<p style="color: red;">${error.message}</p>`;
-        }
+});
+app.post('/api/progresso', authenticateToken, async (req, res) => {
+    try {
+        const { aluno_id, aula_id } = req.body;
+        if (!aluno_id || !aula_id) return res.status(400).json({ error: "ID do aluno e da aula são obrigatórios." });
+        const sql = 'INSERT INTO progresso (aluno_id, aula_id) ON CONFLICT (aluno_id, aula_id) DO NOTHING';
+        await pool.query(sql, [aluno_id, aula_id]);
+        res.status(201).json({ message: "Progresso salvo com sucesso!" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Erro interno do servidor." });
     }
-    
-    // ===============================================
-    // LÓGICA DE NAVEGAÇÃO E EVENTOS
-    // ===============================================
-
-    function handleNavClick(event) {
-        event.preventDefault();
-        const clickedItem = event.currentTarget;
-        const view = clickedItem.dataset.view;
-
-        if (view === 'logout') { handleLogout(); return; }
-
-        navItems.forEach(item => item.classList.remove('active'));
-        clickedItem.classList.add('active');
-        
-        switch (view) {
-            case 'dashboard': renderDashboard(); break;
-            case 'meus-cursos': renderMyCourses(); break;
-            // Adicione os outros casos aqui
-            default: 
-                contentHeader.innerHTML = `<h1>${clickedItem.querySelector('span:last-child').textContent}</h1>`;
-                contentBody.innerHTML = `<p>Seção em desenvolvimento.</p>`;
-        }
+});
+app.get('/api/alunos/:id/progresso', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const sql = `
+            SELECT 
+                c.id as curso_id, 
+                c.name as curso_nome, 
+                (SELECT COUNT(*) FROM aulas WHERE curso_id = c.id)::int as total_aulas,
+                (SELECT COUNT(*) FROM progresso p JOIN aulas a ON p.aula_id = a.id WHERE p.aluno_id = $1 AND a.curso_id = c.id)::int as aulas_concluidas
+            FROM cursos c 
+            JOIN inscricoes i ON c.id = i.curso_id 
+            WHERE i.aluno_id = $2
+        `;
+        const result = await pool.query(sql, [id, id]);
+        res.json({ message: "Progresso do aluno", data: result.rows });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Erro interno do servidor." });
     }
+});
 
-    // Listener de eventos delegado para o corpo do conteúdo
-    mainContent.addEventListener('click', (event) => {
-        const target = event.target;
-        // Para o botão de "Acessar Conteúdo"
-        if (target.classList.contains('view-content-btn')) {
-            const button = target;
-            showContentInModal(button.dataset.tipo, button.dataset.conteudo, button.dataset.titulo);
-        }
-        // Para o botão de "Voltar para Meus Cursos"
-        else if (target.classList.contains('back-button')) {
-            document.querySelector('[data-view=meus-cursos]').click();
-        }
-        // Para os cards de curso
-        else {
-            const courseCard = target.closest('.course-card-student');
-            if(courseCard){
-                renderCourseLessons(courseCard.dataset.courseId, courseCard.dataset.courseName);
-            }
-        }
-    });
 
-    // ===============================================
-    // FUNÇÃO PRINCIPAL DE INICIALIZAÇÃO
-    // ===============================================
+// ==============================================================
+// == AS ROTAS DE ARQUIVOS ESTÁTICOS VÊM POR ÚLTIMO ==
+// ==============================================================
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'login.html'));
+});
+app.use(express.static(__dirname));
 
-    function init() {
-        token = localStorage.getItem('studentToken');
-        if (!token) {
-            handleLogout(); return;
-        }
 
-        currentUser = decodeJwt(token);
-        if (!currentUser || currentUser.role !== 'student') {
-            handleLogout(); return;
-        }
-
-        navItems.forEach(item => item.addEventListener('click', handleNavClick));
-        renderDashboard(); // Começa na Dashboard
-        
-        // Adiciona um estilo dinâmico para os botões parecerem links
-        const style = document.createElement('style');
-        style.innerHTML = `.view-content-btn { background: none; border: none; color: var(--cor-primaria); font-weight: 600; cursor: pointer; font-size: 1em; font-family: 'Inter', sans-serif; padding: 0; }`;
-        document.head.appendChild(style);
-    }
-
-    init();
+// --- INICIA O SERVIDOR ---
+app.listen(port, () => {
+    console.log(`Servidor rodando na porta ${port}`);
+    createTables();
 });
