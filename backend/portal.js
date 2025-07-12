@@ -3,7 +3,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     
     const contentArea = document.querySelector('.student-content');
-    const navItems = document.querySelectorAll('.student-sidebar .nav-item');
+    const navItems = document.querySelectorAll('.nav-link');
     const studentSelector = document.getElementById('student-selector');
     
     let currentAlunoId = null;
