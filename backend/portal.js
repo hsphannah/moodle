@@ -1,4 +1,4 @@
-// --- ARQUIVO: portal.js (Versão com "Marcar como Concluída") ---
+// --- ARQUIVO: portal.js (Versão Completa e Final para o Aluno) ---
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -79,7 +79,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(`/api/alunos/${currentUser.id}/cursos/${courseId}/aulas`, { headers: { 'Authorization': `Bearer ${token}` } });
             if (!response.ok) throw new Error('Não foi possível carregar as aulas.');
             const result = await response.json();
-
             const lessonsHtml = result.data.map(lesson => `
                 <li class="lesson-item ${lesson.concluida ? 'concluida' : ''}" data-lesson-id="${lesson.id}">
                     <span>${lesson.titulo}</span>
@@ -91,23 +90,50 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </li>
             `).join('');
-
             contentBody.innerHTML = `
                 <div class="back-button" data-view="meus-cursos">← Voltar para Meus Cursos</div>
                 <ul class="lesson-list">${lessonsHtml}</ul>`;
         } catch(error) { contentBody.innerHTML = `<p style="color: red;">${error.message}</p>`; }
     }
 
-    // A função de renderizar o progresso será usada no Passo 2 do nosso plano.
     async function renderMyProgress() {
-        contentHeader.innerHTML = `<h1>Meu Progresso</h1>`;
-        contentBody.innerHTML = `<p>Seção em desenvolvimento.</p>`;
+        contentHeader.innerHTML = '<h1>Meu Progresso</h1>';
+        contentBody.innerHTML = `<p>Calculando seu progresso...</p>`;
+        try {
+            const response = await fetch(`/api/alunos/${currentUser.id}/progresso`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error('Não foi possível carregar seu progresso.');
+            const result = await response.json();
+            const progressData = result.data;
+            if (progressData.length === 0) {
+                contentBody.innerHTML = '<h3>Você não tem progresso para exibir pois não está inscrito em cursos.</h3>';
+                return;
+            }
+            const progressCardsHtml = progressData.map(course => {
+                const percentage = course.total_aulas > 0 ? Math.round((course.aulas_concluidas / course.total_aulas) * 100) : 0;
+                return `
+                    <div class="progress-card">
+                        <h3>${course.curso_nome}</h3>
+                        <div class="progress-details">
+                            <span>Completou ${course.aulas_concluidas} de ${course.total_aulas} aulas</span>
+                            <span>${percentage}%</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-fill" style="width: ${percentage}%;"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            contentBody.innerHTML = `<div class="progress-container">${progressCardsHtml}</div>`;
+        } catch (error) {
+            contentBody.innerHTML = `<p style="color: red;">${error.message}</p>`;
+        }
     }
     
     // ===============================================
     // LÓGICA DE AÇÕES DO ALUNO
     // ===============================================
-    
     async function handleMarkLessonComplete(aulaId, buttonElement) {
         buttonElement.disabled = true;
         buttonElement.textContent = 'Salvando...';
@@ -118,17 +144,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ aluno_id: currentUser.id, aula_id: aulaId })
             });
             if (!response.ok) throw new Error('Não foi possível salvar o progresso.');
-
-            // Sucesso! Atualiza a UI.
             buttonElement.textContent = 'Concluída';
             const lessonItem = buttonElement.closest('.lesson-item');
-            if (lessonItem) {
-                lessonItem.classList.add('concluida');
-            }
+            if (lessonItem) { lessonItem.classList.add('concluida'); }
         } catch (error) {
             console.error("Erro ao marcar aula como concluída:", error);
             alert(error.message);
-            buttonElement.disabled = false; // Reabilita o botão em caso de erro
+            buttonElement.disabled = false;
             buttonElement.textContent = 'Marcar como Concluída';
         }
     }
