@@ -90,31 +90,30 @@ app.delete('/api/inscricoes', authenticateToken, async (req, res) => { try { con
 app.post('/api/progresso', authenticateToken, async (req, res) => { try { const { aluno_id, aula_id } = req.body; if (!aluno_id || !aula_id) return res.status(400).json({ error: "ID do aluno e da aula são obrigatórios." }); const sql = 'INSERT INTO progresso (aluno_id, aula_id) ON CONFLICT (aluno_id, aula_id) DO NOTHING'; await pool.query(sql, [aluno_id, aula_id]); res.status(201).json({ message: "Progresso salvo com sucesso!" }); } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); } });
 app.get('/api/alunos/:id/progresso', authenticateToken, async (req, res) => { try { const { id } = req.params; const sql = ` SELECT c.id as curso_id, c.name as curso_nome, (SELECT COUNT(*) FROM aulas WHERE curso_id = c.id)::int as total_aulas, (SELECT COUNT(*) FROM progresso p JOIN aulas a ON p.aula_id = a.id WHERE p.aluno_id = $1 AND a.curso_id = c.id)::int as aulas_concluidas FROM cursos c JOIN inscricoes i ON c.id = i.curso_id WHERE i.aluno_id = $2 `; const result = await pool.query(sql, [id, id]); res.json({ message: "Progresso do aluno", data: result.rows }); } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); } });
 
-
 // ==============================================================
-// == ROTAS DE ARQUIVOS ESTÁTICOS (SEÇÃO ATUALIZADA) ==
+// == ROTAS DE ARQUIVOS ESTÁTICOS (VERSÃO FINAL CORRIGIDA) ==
 // ==============================================================
 
-// **CORREÇÃO AQUI**: Servimos a pasta /uploads primeiro
+// 1. Rota para servir arquivos da pasta /uploads.
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Depois, servimos os outros arquivos estáticos da raiz (index.html, portal.html, css, etc)
+// 2. Rota para servir arquivos da pasta raiz (portal.css, portal.js, etc.).
+// Esta linha é crucial para que os arquivos CSS e JS sejam encontrados.
 app.use(express.static(path.join(__dirname)));
 
-// A rota da página inicial (login) vem depois dos arquivos estáticos
+// 3. Rotas explícitas para os seus arquivos HTML principais.
+// Isso garante que o servidor saiba exatamente o que entregar.
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'login.html'));
 });
 
-// Rota final "catch-all" para lidar com qualquer outra requisição,
-// talvez redirecionando para a página de login.
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'login.html'));
+app.get('/portal.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'portal.html'));
 });
 
-
-// --- INICIA O SERVIDOR ---
-app.listen(port, () => {
-    console.log(`Servidor rodando na porta ${port}`);
-    createTables();
+app.get('/index.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
+
+// Uma rota final para qualquer outra coisa pode redirecionar para o login,
+// mas vamos deixar sem por enquanto para facilitar a depuração.
