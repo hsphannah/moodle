@@ -295,3 +295,43 @@ body {
     width: 100%;
     height: 100%;
 }
+/* --- ARQUIVO: portal.css (adicionar no final) --- */
+
+/* --- Estilos para o Botão "Marcar como Concluída" --- */
+
+.lesson-item-actions {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.complete-btn {
+    background-color: var(--cor-card);
+    color: #28a745; /* Verde para sucesso */
+    border: 1px solid #28a745;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.complete-btn:hover {
+    background-color: #28a745;
+    color: #ffffff;
+}
+
+/* Estilo para o botão quando a aula já está concluída */
+.complete-btn:disabled {
+    background-color: #28a745;
+    color: #ffffff;
+    border-color: #28a745;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* Estilo para o item da lista quando concluído */
+.lesson-item.concluida > span {
+    text-decoration: line-through;
+    color: #6c757d;
+}
