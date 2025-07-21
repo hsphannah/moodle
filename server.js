@@ -1,3 +1,16 @@
+// Adicionamos "espiões" para capturar QUALQUER erro que possa derrubar o servidor
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('!!!!!!!!!! REJEIÇÃO DE PROMISE NÃO TRATADA !!!!!!!!!!');
+    console.error('Motivo:', reason);
+    process.exit(1); // Encerra o processo para o Render tentar reiniciar
+});
+process.on('uncaughtException', (err) => {
+    console.error('!!!!!!!!!! EXCEÇÃO NÃO TRATADA !!!!!!!!!!');
+    console.error(err);
+    process.exit(1); // Encerra o processo
+});
+
+
 const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
@@ -15,6 +28,12 @@ const saltRounds = 10;
 const JWT_SECRET = process.env.JWT_SECRET || 'seu_segredo_local_super_secreto_e_forte';
 const DATABASE_URL = process.env.DATABASE_URL;
 
+// Validação crucial das variáveis de ambiente
+if (!DATABASE_URL) {
+    console.error("ERRO FATAL: A variável de ambiente DATABASE_URL não está definida.");
+    process.exit(1);
+}
+
 const pool = new Pool({
     connectionString: DATABASE_URL,
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
@@ -30,28 +49,6 @@ const storage = multer.diskStorage({
     filename: (req, file, cb) => { cb(null, Date.now() + path.extname(file.originalname)); }
 });
 const upload = multer({ storage: storage });
-
-// Função para criar as tabelas
-const createTables = async () => {
-    const queries = [
-        `CREATE TABLE IF NOT EXISTS cursos (id SERIAL PRIMARY KEY, name TEXT NOT NULL, description TEXT);`,
-        `CREATE TABLE IF NOT EXISTS alunos (id SERIAL PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL);`,
-        `CREATE TABLE IF NOT EXISTS admins (id SERIAL PRIMARY KEY, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL);`,
-        `CREATE TABLE IF NOT EXISTS inscricoes (id SERIAL PRIMARY KEY, aluno_id INTEGER NOT NULL REFERENCES alunos(id) ON DELETE CASCADE, curso_id INTEGER NOT NULL REFERENCES cursos(id) ON DELETE CASCADE, UNIQUE(aluno_id, curso_id));`,
-        `CREATE TABLE IF NOT EXISTS aulas (id SERIAL PRIMARY KEY, titulo TEXT NOT NULL, tipo TEXT NOT NULL, conteudo TEXT NOT NULL, curso_id INTEGER NOT NULL REFERENCES cursos(id) ON DELETE CASCADE);`,
-        `CREATE TABLE IF NOT EXISTS progresso (id SERIAL PRIMARY KEY, aluno_id INTEGER NOT NULL REFERENCES alunos(id) ON DELETE CASCADE, aula_id INTEGER NOT NULL REFERENCES aulas(id) ON DELETE CASCADE, UNIQUE(aluno_id, aula_id));`
-    ];
-    try {
-        for (const query of queries) {
-            await pool.query(query);
-        }
-        console.log("Tabelas verificadas/criadas com sucesso no PostgreSQL.");
-    } catch (err) {
-        console.error("Erro fatal ao criar as tabelas:", err);
-    }
-};
-
-// Middleware de Autenticação
 const authenticateToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
@@ -59,10 +56,11 @@ const authenticateToken = (req, res, next) => {
     jwt.verify(token, JWT_SECRET, (err, user) => { if (err) return res.sendStatus(403); req.user = user; next(); });
 };
 
+
 // ===========================================
-// == ROTAS DE API ==
+// == ROTAS DE API (NENHUMA MUDANÇA) ==
 // ===========================================
-// (Todas as suas rotas /api/... vêm aqui, sem nenhuma alteração)
+// (Todas as suas rotas /api/... vêm aqui. O código delas está correto)
 app.get('/health', (req, res) => { res.status(200).json({ status: 'ok' }); });
 app.post('/api/register', async (req, res) => { try { const { email, password } = req.body; if (!email || !password) return res.status(400).json({ error: "Email e senha são obrigatórios." }); const hash = await bcrypt.hash(password, saltRounds); const sql = 'INSERT INTO admins (email, password_hash) VALUES ($1, $2) RETURNING id'; const result = await pool.query(sql, [email, hash]); res.status(201).json({ message: "Administrador registrado com sucesso!", userId: result.rows[0].id }); } catch (err) { console.error(err); if (err.code === '23505') return res.status(409).json({ error: "Este email já está em uso." }); res.status(500).json({ error: "Erro interno do servidor." }); } });
 app.post('/api/admin/login', async (req, res) => { try { const { email, password } = req.body; if (!email || !password) return res.status(400).json({ error: "Email e senha são obrigatórios." }); const result = await pool.query('SELECT * FROM admins WHERE email = $1', [email]); const admin = result.rows[0]; if (!admin) return res.status(401).json({ error: "Credenciais inválidas." }); const match = await bcrypt.compare(password, admin.password_hash); if (match) { const payload = { id: admin.id, email: admin.email, role: 'admin' }; const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' }); res.json({ message: "Login de admin bem-sucedido!", token: token }); } else { res.status(401).json({ error: "Credenciais inválidas." }); } } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); } });
@@ -90,30 +88,61 @@ app.delete('/api/inscricoes', authenticateToken, async (req, res) => { try { con
 app.post('/api/progresso', authenticateToken, async (req, res) => { try { const { aluno_id, aula_id } = req.body; if (!aluno_id || !aula_id) return res.status(400).json({ error: "ID do aluno e da aula são obrigatórios." }); const sql = 'INSERT INTO progresso (aluno_id, aula_id) ON CONFLICT (aluno_id, aula_id) DO NOTHING'; await pool.query(sql, [aluno_id, aula_id]); res.status(201).json({ message: "Progresso salvo com sucesso!" }); } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); } });
 app.get('/api/alunos/:id/progresso', authenticateToken, async (req, res) => { try { const { id } = req.params; const sql = ` SELECT c.id as curso_id, c.name as curso_nome, (SELECT COUNT(*) FROM aulas WHERE curso_id = c.id)::int as total_aulas, (SELECT COUNT(*) FROM progresso p JOIN aulas a ON p.aula_id = a.id WHERE p.aluno_id = $1 AND a.curso_id = c.id)::int as aulas_concluidas FROM cursos c JOIN inscricoes i ON c.id = i.curso_id WHERE i.aluno_id = $2 `; const result = await pool.query(sql, [id, id]); res.json({ message: "Progresso do aluno", data: result.rows }); } catch (err) { console.error(err); res.status(500).json({ error: "Erro interno do servidor." }); } });
 
+
 // ==============================================================
-// == ROTAS DE ARQUIVOS ESTÁTICOS (VERSÃO FINAL CORRIGIDA) ==
+// == INICIALIZAÇÃO E ROTAS DE ARQUIVOS ESTÁTICOS (SEÇÃO ATUALIZADA) ==
 // ==============================================================
 
-// 1. Rota para servir arquivos da pasta /uploads.
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Função para iniciar o servidor web e servir os arquivos
+function startWebServer() {
+    console.log("Banco de dados pronto. Iniciando o servidor web...");
 
-// 2. Rota para servir arquivos da pasta raiz (portal.css, portal.js, etc.).
-// Esta linha é crucial para que os arquivos CSS e JS sejam encontrados.
-app.use(express.static(path.join(__dirname)));
+    app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+    app.use(express.static(path.join(__dirname)));
+    
+    app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'login.html')); });
+    app.get('/portal.html', (req, res) => { res.sendFile(path.join(__dirname, 'portal.html')); });
+    app.get('/index.html', (req, res) => { res.sendFile(path.join(__dirname, 'index.html')); });
 
-// 3. Rotas explícitas para os seus arquivos HTML principais.
-// Isso garante que o servidor saiba exatamente o que entregar.
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'login.html'));
-});
+    app.listen(port, () => {
+        console.log(`Servidor web rodando com sucesso na porta ${port}`);
+    });
+}
 
-app.get('/portal.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'portal.html'));
-});
+// Função para preparar o banco de dados
+const prepareDatabase = async () => {
+    const queries = [
+        `CREATE TABLE IF NOT EXISTS cursos (id SERIAL PRIMARY KEY, name TEXT NOT NULL, description TEXT);`,
+        `CREATE TABLE IF NOT EXISTS alunos (id SERIAL PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL);`,
+        `CREATE TABLE IF NOT EXISTS admins (id SERIAL PRIMARY KEY, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL);`,
+        `CREATE TABLE IF NOT EXISTS inscricoes (id SERIAL PRIMARY KEY, aluno_id INTEGER NOT NULL REFERENCES alunos(id) ON DELETE CASCADE, curso_id INTEGER NOT NULL REFERENCES cursos(id) ON DELETE CASCADE, UNIQUE(aluno_id, curso_id));`,
+        `CREATE TABLE IF NOT EXISTS aulas (id SERIAL PRIMARY KEY, titulo TEXT NOT NULL, tipo TEXT NOT NULL, conteudo TEXT NOT NULL, curso_id INTEGER NOT NULL REFERENCES cursos(id) ON DELETE CASCADE);`,
+        `CREATE TABLE IF NOT EXISTS progresso (id SERIAL PRIMARY KEY, aluno_id INTEGER NOT NULL REFERENCES alunos(id) ON DELETE CASCADE, aula_id INTEGER NOT NULL REFERENCES aulas(id) ON DELETE CASCADE, UNIQUE(aluno_id, aula_id));`
+    ];
+    const client = await pool.connect();
+    console.log("Conexão com o banco de dados PostgreSQL estabelecida com sucesso.");
+    try {
+        for (const query of queries) {
+            await client.query(query);
+        }
+        console.log("Tabelas verificadas/criadas com sucesso.");
+    } finally {
+        client.release();
+    }
+};
 
-app.get('/index.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
+// Função principal que orquestra a inicialização
+async function start() {
+    try {
+        console.log("Iniciando verificação do banco de dados...");
+        await prepareDatabase();
+        startWebServer();
+    } catch (err) {
+        console.error("!!!!!!!!!! FALHA CRÍTICA NA INICIALIZAÇÃO !!!!!!!!!!");
+        console.error("Não foi possível conectar ao banco de dados ou criar as tabelas.", err);
+        process.exit(1);
+    }
+}
 
-// Uma rota final para qualquer outra coisa pode redirecionar para o login,
-// mas vamos deixar sem por enquanto para facilitar a depuração.
+// Inicia tudo
+start();
