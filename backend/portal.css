@@ -1,23 +1,63 @@
-/* portal.css */
-
-/* Importando a fonte e reset básico */
+/* --- ARQUIVO: portal.css --- */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-/* ========================================= */
-/* NOVIDADE: Central de Comando das Cores   */
-/* ========================================= */
 :root {
-    --cor-primaria: #e5383b;      /* Vermelho para destaques e botões */
-    --cor-fundo-sidebar: #212529; /* Preto suave para a barra lateral */
-    --cor-fundo-pagina: #f4f4f5;  /* Cinza muito claro para o fundo geral */
-    --cor-fundo-card: #ffffff;   /* Branco para os cards e áreas de conteúdo */
-    --cor-texto-principal: #212529; /* Preto suave para textos principais */
-    --cor-texto-sidebar: #ced4da; /* Cinza claro para texto na sidebar */
-    --cor-texto-hover: #ffffff;    /* Texto branco ao passar o mouse */
-    --cor-borda: #dee2e6;         /* Cinza para as bordas e divisórias */
+    --cor-primaria: #e5383b; --cor-fundo-sidebar: #212529;
+    --cor-fundo-pagina: #f4f4f5; --cor-texto-principal: #212529;
+    --cor-texto-sidebar: #ced4da; --cor-texto-hover: #ffffff;
+    --cor-borda: #dee2e6; --cor-card: #ffffff;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Inter', sans-serif; background-color: var(--cor-fundo-pagina); color: var(--cor-texto-principal); }
+.portal-container { display: flex; }
+.student-sidebar { width: 260px; background-color: var(--cor-fundo-sidebar); color: var(--cor-texto-sidebar); min-height: 100vh; padding: 20px; display: flex; flex-direction: column; }
+.sidebar-header h3 { font-size: 1.5rem; color: var(--cor-texto-hover); margin-bottom: 30px; text-align: center; }
+.sidebar-nav { display: flex; flex-direction: column; gap: 10px; }
+.sidebar-footer { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
+.nav-item { display: flex; align-items: center; gap: 15px; padding: 12px 15px; border-radius: 8px; text-decoration: none; color: inherit; font-weight: 500; transition: background-color 0.2s, color 0.2s; cursor: pointer; }
+.nav-item:hover { background-color: #343a40; color: var(--cor-texto-hover); }
+.nav-item.active { background-color: var(--cor-primaria); color: var(--cor-texto-hover); }
+.student-content { flex-grow: 1; padding: 40px; }
+.content-header h1 { font-size: 2rem; font-weight: 700; margin-bottom: 30px; }
+.material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+
+/* Estilos para os cards de curso e listas de aulas */
+.course-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+.course-card-student { background-color: var(--cor-card); border: 1px solid var(--cor-borda); border-radius: 8px; padding: 20px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+.course-card-student:hover { transform: translateY(-5px); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+.course-card-student h3 { margin-bottom: 10px; color: var(--cor-primaria); }
+.lesson-list { list-style: none; padding: 0; }
+.lesson-item { background-color: var(--cor-card); border: 1px solid var(--cor-borda); border-radius: 8px; padding: 15px 20px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+.lesson-item.concluida { border-left: 5px solid #28a745; }
+.lesson-item.concluida span { text-decoration: line-through; color: #6c757d; }
+.lesson-item a { text-decoration: none; font-weight: 600; color: var(--cor-primaria); }
+.back-button { margin-bottom: 20px; font-weight: 600; cursor: pointer; color: var(--cor-primaria); }
+/* --- Estilos para o Modal de Conteúdo --- */
+
+.modal {
+    display: none; position: fixed; z-index: 1000;
+    left: 0; top: 0; width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    justify-content: center; align-items: center;
+}
+.modal.active { display: flex; }
+
+.modal-content {
+    background-color: #fff; border-radius: 8px;
+    padding: 25px; width: 90%; max-width: 800px; /* Maior para conteúdo */
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    max-height: 90vh; display: flex; flex-direction: column;
 }
 
+.modal-header {
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid var(--cor-borda);
+    padding-bottom: 15px; margin-bottom: 20px;
+}
+.modal-header h2 { font-size: 1.5rem; margin: 0; }
+.close-button { background: none; border: none; font-size: 2.5rem; cursor: pointer; color: #6c757d; }
 
+<<<<<<< HEAD
 * {
     margin: 0;
     padding: 0;
@@ -335,3 +375,8 @@ body {
     text-decoration: line-through;
     color: #6c757d;
 }
+=======
+.modal-body { overflow-y: auto; /* Adiciona scroll se o conteúdo for grande */ }
+.modal-body img, .modal-body video { max-width: 100%; height: auto; display: block; }
+.modal-body iframe { width: 100%; height: 450px; border: none; }
+>>>>>>> d4c888f29f33a30999f636cb2c7049190792f7a8

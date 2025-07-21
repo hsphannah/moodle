@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portal do Aluno</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Painel de Administrador</title>
+    <link rel="stylesheet" href="style.css?v=final">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 </head>
 <body>
@@ -40,12 +40,12 @@
             <div class="modal-body">
                 <div class="form-group"><label for="aluno-nome">Nome Completo</label><input type="text" id="aluno-nome" class="form-input" placeholder="Digite o nome completo do aluno"></div>
                 <div class="form-group"><label for="aluno-email">Email</label><input type="email" id="aluno-email" class="form-input" placeholder="Ex: aluno@email.com"></div>
-                <div class="form-group"><label for="aluno-curso">Matricular no curso</label><select id="aluno-curso" class="form-select"></select></div>
+                <div class="form-group">
+                    <label for="aluno-senha">Senha Provisória</label>
+                    <input type="password" id="aluno-senha" class="form-input" placeholder="Crie uma senha para o aluno">
+                </div>
+                <div class="form-group"><label for="aluno-curso">Matricular no curso (Opcional)</label><select id="aluno-curso" class="form-select"></select></div>
             </div>
-            <div class="form-group">
-    <label for="aluno-senha">Senha Provisória</label>
-    <input type="password" id="aluno-senha" class="form-input" placeholder="Crie uma senha para o aluno">
-</div>
             <footer class="modal-footer"><button class="btn btn-secondary" data-action="cancel">Cancelar</button><button class="btn btn-primary" data-action="save-aluno">Salvar Aluno</button></footer>
         </div>
     </div>
@@ -61,38 +61,37 @@
         </div>
     </div>
 
-  <div class="modal" id="modal-nova-aula">
-    <div class="modal-content">
-        <header class="modal-header"><h2>Adicionar Nova Aula</h2><button class="close-button">&times;</button></header>
-        <div class="modal-body">
-            
-            <div class="form-group">
-                <label for="aula-titulo">Título da Aula</label>
-                <input type="text" id="aula-titulo" class="form-input" placeholder="Ex: Teoria das Cores">
+    <div class="modal" id="modal-nova-aula">
+        <div class="modal-content">
+            <header class="modal-header"><h2>Adicionar Nova Aula</h2><button class="close-button">&times;</button></header>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="aula-titulo">Título da Aula</label>
+                    <input type="text" id="aula-titulo" class="form-input" placeholder="Ex: Teoria das Cores">
+                </div>
+                <div class="form-group">
+                    <label for="aula-tipo">Tipo de Conteúdo</label>
+                    <select id="aula-tipo" class="form-select">
+                        <option>Vídeo (Link)</option>
+                        <option>Vídeo (Upload)</option>
+                        <option>Texto</option>
+                        <option>PDF (Upload)</option>
+                        <option>Imagem (Upload)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="aula-conteudo-texto">Conteúdo</label>
+                    <textarea id="aula-conteudo-texto" class="form-input" rows="4" placeholder="Cole a URL do vídeo ou digite o texto..."></textarea>
+                    <input type="file" id="aula-conteudo-arquivo" class="form-input" style="display: none;">
+                </div>
             </div>
-            <div class="form-group">
-                <label for="aula-tipo">Tipo de Conteúdo</label>
-                <select id="aula-tipo" class="form-select">
-                    <option value="Vídeo (Link)">Vídeo (Colar Link)</option>
-                    <option value="Vídeo (Upload)">Vídeo (Fazer Upload)</option>
-                    <option value="Texto">Texto</option>
-                    <option value="PDF (Upload)">PDF (Fazer Upload)</option>
-                    <option value="Imagem (Upload)">Imagem (Fazer Upload)</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="aula-conteudo-texto">Conteúdo</label>
-                <textarea id="aula-conteudo-texto" class="form-input" rows="4" placeholder="Cole a URL do vídeo ou digite o texto..."></textarea>
-                <input type="file" id="aula-conteudo-arquivo" class="form-input" style="display: none;">
-            </div>
+            <footer class="modal-footer">
+                <button class="btn btn-secondary" data-action="cancel">Cancelar</button>
+                <button class="btn btn-primary" data-action="save-aula">Salvar Aula</button>
+            </footer>
         </div>
-        <footer class="modal-footer">
-            <button class="btn btn-secondary" data-action="cancel">Cancelar</button>
-            <button class="btn btn-primary" data-action="save-aula">Salvar Aula</button>
-        </footer>
     </div>
-</div>
 
-    <script src="script.js"></script>
+    <script src="script.js?v=final"></script>
 </body>
 </html>
