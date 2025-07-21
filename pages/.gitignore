@@ -1,0 +1,13 @@
+# Arquivos de Dependências (NUNCA envie esta pasta)
+node_modules/
+
+# Banco de Dados de Desenvolvimento Local
+db.sqlite
+
+# Arquivos de Variáveis de Ambiente (contém senhas e segredos)
+.env
+
+# Logs de Erro
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
