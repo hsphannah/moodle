@@ -2,24 +2,45 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
-    const errorMessage = document.getElementById('error-message');
+    const errorMessageElement = document.getElementById('error-message'); // Renomeado para evitar conflito
+
+    // Função auxiliar para exibir toasts
+    function showToast(message, type = 'error') {
+        const backgroundColor = type === 'success' ? '#28a745' : '#dc3545'; // Verde para sucesso, vermelho para erro
+        Toastify({
+            text: message,
+            duration: 3000, // 3 segundos
+            close: true,
+            gravity: "top", // `top` ou `bottom`
+            position: "right", // `left`, `center` ou `right`
+            stopOnFocus: true, // Para o tempo do toast se o usuário focar nele
+            style: {
+                background: backgroundColor,
+                borderRadius: "5px",
+                padding: "10px 20px"
+            },
+            onClick: function(){} // Callback depois de clicar
+        }).showToast();
+    }
 
     // Validação básica: verifica se os elementos essenciais existem
-    if (!loginForm || !errorMessage) {
+    if (!loginForm || !errorMessageElement) {
         console.error("Erro Crítico: Elementos do formulário de login (login-form ou error-message) não encontrados no HTML.");
+        // Se houver um erro crítico, exiba um alert fallback
+        alert("Erro crítico na página de login. Por favor, tente novamente.");
         return;
     }
 
     loginForm.addEventListener('submit', async (event) => {
         event.preventDefault(); // Impede o comportamento padrão de recarregar a página
-        errorMessage.textContent = ''; // Limpa mensagens de erro anteriores
+        errorMessageElement.textContent = ''; // Limpa mensagens de erro anteriores do <p>
 
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
 
         // Validação simples do lado do cliente
         if (!email || !password) {
-            errorMessage.textContent = 'Por favor, preencha todos os campos.';
+            showToast('Por favor, preencha todos os campos.', 'error');
             return;
         }
 
@@ -61,20 +82,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (userRole === 'admin') {
                     localStorage.setItem('adminToken', token);
-                    window.location.href = 'index.html'; // Redireciona para o painel do admin
+                    showToast('Login de administrador realizado com sucesso!', 'success');
+                    // Pequeno atraso para o toast aparecer antes de redirecionar
+                    setTimeout(() => { window.location.href = 'index.html'; }, 500); 
                 } else if (userRole === 'student') {
                     localStorage.setItem('studentToken', token);
-                    window.location.href = 'portal.html'; // Redireciona para o portal do aluno
+                    showToast('Login de aluno realizado com sucesso!', 'success');
+                    // Pequeno atraso para o toast aparecer antes de redirecionar
+                    setTimeout(() => { window.location.href = 'portal.html'; }, 500);
                 }
             } else {
                 // Se response.ok foi falso em ambas as tentativas, tenta extrair a mensagem de erro
                 const errorResult = await response.json().catch(() => ({ message: 'Credenciais inválidas ou erro desconhecido.' }));
-                throw new Error(errorResult.error || errorResult.message || 'Credenciais inválidas.');
+                // Exibe a mensagem de erro no toast e também no elemento de erro para redundância
+                const errorMessageText = errorResult.error || errorResult.message || 'Credenciais inválidas. Por favor, tente novamente.';
+                errorMessageElement.textContent = errorMessageText; // Mantém a mensagem no <p> também
+                showToast(errorMessageText, 'error');
             }
 
         } catch (error) {
             console.error('Falha no login:', error);
-            errorMessage.textContent = error.message; // Exibe a mensagem de erro para o usuário
+            // Exibe o erro no toast (e no <p> se for erro de rede/JS)
+            const displayMessage = error.message || 'Ocorreu um erro de rede. Verifique sua conexão.';
+            errorMessageElement.textContent = displayMessage; // Mantém a mensagem no <p>
+            showToast(displayMessage, 'error');
         }
     });
 });

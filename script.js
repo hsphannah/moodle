@@ -16,6 +16,25 @@ document.addEventListener('DOMContentLoaded', () => {
     // FUNÇÕES DE UTILIDADE E AUTENTICAÇÃO
     // ===============================================
 
+    // Função auxiliar para exibir toasts
+    function showToast(message, type = 'error') {
+        const backgroundColor = type === 'success' ? '#28a745' : type === 'info' ? '#17a2b8' : '#dc3545'; // Verde, Azul, Vermelho
+        Toastify({
+            text: message,
+            duration: 3000, // 3 segundos
+            close: true,
+            gravity: "top", // `top` ou `bottom`
+            position: "right", // `left`, `center` ou `right`
+            stopOnFocus: true, // Para o tempo do toast se o usuário focar nele
+            style: {
+                background: backgroundColor,
+                borderRadius: "5px",
+                padding: "10px 20px"
+            },
+            onClick: function(){} // Callback depois de clicar
+        }).showToast();
+    }
+
     // Função centralizada para fazer requisições à API
     // Inclui tratamento de erro padronizado e token de autorização
     async function fetchData(url, options = {}) {
@@ -50,8 +69,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function checkAdminAuth() {
         const token = getToken();
         if (!token) {
-            alert('Você precisa estar logado como administrador para acessar esta página.');
-            window.location.href = 'login.html'; // Redireciona para a página de login
+            showToast('Sua sessão expirou ou você não está logado. Por favor, faça login novamente.', 'error');
+            setTimeout(() => { window.location.href = 'login.html'; }, 500);
+            return; // Garante que a função não continue
         }
     }
 
@@ -157,6 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error("Erro ao carregar dashboard:", error);
+            showToast(`Erro ao carregar Dashboard: ${error.message}`, 'error');
             if (statsContainer) statsContainer.innerHTML = `<p class="error-message">Erro ao carregar estatísticas: ${error.message}</p>`;
             if (courseProgressContainer) courseProgressContainer.innerHTML = `<h2>Progresso dos Cursos</h2><p class="error-message">Erro ao carregar progresso: ${error.message}</p>`;
             if (recentStudentsContainer) recentStudentsContainer.innerHTML = `<h2>Alunos Recentes</h2><p class="error-message">Erro ao carregar alunos recentes: ${error.message}</p>`;
@@ -198,12 +219,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     paymentListContainer.innerHTML = '<p class="empty-message">Nenhum pagamento registrado.</p>';
                 } else {
                     paymentListContainer.innerHTML = payments.map(payment => {
-                        const statusClass = payment.status.toLowerCase();
+                        const statusClass = payment.status.toLowerCase().replace(' ', '-'); // "Atrasado" -> "atrasado"
                         const dueDate = new Date(payment.due_date).toLocaleDateString('pt-BR');
                         const actionsHtml = `
                             <button class="btn btn-secondary" data-action="view-payment-details" data-payment-id="${payment.id}">Ver Detalhes</button>
-                            ${statusClass === 'pending' ? `<button class="btn btn-primary" data-action="register-payment" data-payment-id="${payment.id}">Registrar Pagamento</button>` : ''}
-                            ${statusClass === 'overdue' ? `<button class="btn btn-danger" data-action="send-reminder" data-payment-id="${payment.id}">Enviar Cobrança</button>` : ''}
+                            ${statusClass === 'pendente' ? `<button class="btn btn-primary" data-action="register-payment" data-payment-id="${payment.id}">Registrar Pagamento</button>` : ''}
+                            ${statusClass === 'atrasado' ? `<button class="btn btn-danger" data-action="send-reminder" data-payment-id="${payment.id}">Enviar Cobrança</button>` : ''}
                         `;
                         return `
                             <div class="payment-list-item">
@@ -226,7 +247,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             // Adiciona o listener para as abas APENAS DEPOIS que o HTML da página financeira foi carregado
-            if (tabsContainer) {
+            // Verifica se o listener já foi adicionado para evitar duplicação (importante em SPAs)
+            if (tabsContainer && !tabsContainer.dataset.listenerAdded) {
                 tabsContainer.addEventListener('click', (event) => {
                     const tabItem = event.target.closest('.tab-item');
                     if (tabItem) {
@@ -239,16 +261,20 @@ document.addEventListener('DOMContentLoaded', () => {
                         
                         // Adiciona 'active' à aba clicada e ao conteúdo correspondente
                         tabItem.classList.add('active');
+                        // Use querySelector no mainContent para garantir que pegue a aba correta
                         mainContent.querySelector(`[data-content="${tabName}"]`).classList.add('active');
 
                         // Opcional: Carregar conteúdo específico da aba (relatórios, config, gateway) aqui
                         // Ex: if (tabName === 'relatorios') renderRelatorios();
+                        // if (tabName === 'relatorios') showToast('Carregando relatórios...', 'info'); // Exemplo de uso
                     }
                 });
+                tabsContainer.dataset.listenerAdded = 'true'; // Marca que o listener foi adicionado
             }
 
         } catch (error) {
             console.error("Erro ao carregar financeiro:", error);
+            showToast(`Erro ao carregar Financeiro: ${error.message}`, 'error');
             if (statsContainer) statsContainer.innerHTML = `<p class="error-message">Erro ao carregar dados financeiros: ${error.message}</p>`;
             if (paymentListContainer) paymentListContainer.innerHTML = `<p class="error-message">Erro ao carregar pagamentos: ${error.message}</p>`;
         }
@@ -307,6 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error("Erro ao buscar cursos:", error);
+            showToast(`Erro ao carregar cursos: ${error.message}`, 'error');
             container.innerHTML = `<p class="error-message">Erro ao carregar os cursos: ${error.message}</p>`;
         }
     };
@@ -318,7 +345,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const courseData = { name: courseNameInput.value, description: courseDescInput.value };
 
         if (!courseData.name || !courseData.description) {
-            alert('Por favor, preencha todos os campos do curso.');
+            showToast('Por favor, preencha todos os campos do curso.', 'error');
             return;
         }
 
@@ -331,12 +358,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(courseData)
             });
-            alert(`Curso ${editingCourseId ? 'atualizado' : 'adicionado'} com sucesso!`);
+            showToast(`Curso ${editingCourseId ? 'atualizado' : 'adicionado'} com sucesso!`, 'success');
             renderCourses(); // Recarrega a lista de cursos
             closeCourseModal(); // Fecha e reseta o modal
         } catch (error) {
             console.error('Falha ao salvar o curso:', error);
-            alert(`Não foi possível salvar o curso: ${error.message}`);
+            showToast(`Não foi possível salvar o curso: ${error.message}`, 'error');
         }
     };
 
@@ -353,7 +380,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('modal-novo-curso').classList.add('active');
         } catch (error) {
             console.error('Falha ao buscar dados para edição:', error);
-            alert(`Não foi possível carregar o curso para edição: ${error.message}`);
+            showToast(`Não foi possível carregar o curso para edição: ${error.message}`, 'error');
         }
     };
 
@@ -364,11 +391,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         try {
             await fetchData(`/api/cursos/${courseId}`, { method: 'DELETE' });
-            alert('Curso excluído com sucesso!');
+            showToast('Curso excluído com sucesso!', 'success');
             renderCourses(); // Recarrega a lista de cursos
         } catch (error) {
             console.error('Falha ao excluir o curso:', error);
-            alert(`Não foi possível excluir o curso: ${error.message}`);
+            showToast(`Não foi possível excluir o curso: ${error.message}`, 'error');
         }
     };
 
@@ -421,7 +448,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error('Falha ao buscar detalhes do curso:', error);
-            alert(`Não foi possível carregar os detalhes do curso: ${error.message}`);
+            showToast(`Não foi possível carregar os detalhes do curso: ${error.message}`, 'error');
             modal.classList.remove('active'); // Fecha o modal em caso de erro
         }
     };
@@ -448,12 +475,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ aluno_id: alunoId, curso_id: cursoId })
             });
-            alert(result.message || 'Inscrição cancelada com sucesso!');
+            showToast(result.message || 'Inscrição cancelada com sucesso!', 'success');
             // Recarrega os detalhes do curso para atualizar a lista de alunos inscritos
             handleViewCourseDetails(cursoId);
         } catch (error) {
             console.error('Erro ao cancelar inscrição:', error);
-            alert(`Erro ao cancelar inscrição: ${error.message}`);
+            showToast(`Erro ao cancelar inscrição: ${error.message}`, 'error');
         }
     };
 
@@ -472,7 +499,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const result = await fetchData('/api/alunos'); // Usa a função fetchData
-            const alunos = result.data; // Assumindo { data: [...] }
+            const alunos = result.data; // Assumindo que o backend retorna { data: [...] }
 
             container.innerHTML = ''; // Limpa o conteúdo antes de renderizar
             if (alunos.length === 0) {
@@ -515,6 +542,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error("Erro ao buscar alunos:", error);
+            showToast(`Erro ao carregar alunos: ${error.message}`, 'error');
             container.innerHTML = `<p class="error-message">Erro ao carregar os alunos: ${error.message}</p>`;
         }
     };
@@ -536,7 +564,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Validação básica
         if (!alunoData.name || !alunoData.email || (!editingAlunoId && !alunoData.password)) {
-            alert('Por favor, preencha nome, email e senha (para novos alunos).');
+            showToast('Por favor, preencha nome, email e senha (para novos alunos).', 'error');
             return;
         }
 
@@ -549,12 +577,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(alunoData)
             });
-            alert(`Aluno ${editingAlunoId ? 'atualizado' : 'adicionado'} com sucesso!`);
+            showToast(`Aluno ${editingAlunoId ? 'atualizado' : 'adicionado'} com sucesso!`, 'success');
             renderAlunos(); // Recarrega a lista de alunos
             closeAlunoModal(); // Fecha e reseta o modal
         } catch (error) {
             console.error('Falha ao salvar aluno:', error);
-            alert(`Não foi possível salvar o aluno: ${error.message}`);
+            showToast(`Não foi possível salvar o aluno: ${error.message}`, 'error');
         }
     };
 
@@ -581,7 +609,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('modal-novo-aluno').classList.add('active');
         } catch (error) {
             console.error('Falha ao buscar dados do aluno:', error);
-            alert(`Não foi possível carregar o aluno para edição: ${error.message}`);
+            showToast(`Não foi possível carregar o aluno para edição: ${error.message}`, 'error');
         }
     };
 
@@ -592,11 +620,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         try {
             await fetchData(`/api/alunos/${alunoId}`, { method: 'DELETE' });
-            alert('Aluno excluído com sucesso!');
+            showToast('Aluno excluído com sucesso!', 'success');
             renderAlunos(); // Recarrega a lista de alunos
         } catch (error) {
             console.error('Falha ao excluir aluno:', error);
-            alert(`Não foi possível excluir o aluno: ${error.message}`);
+            showToast(`Não foi possível excluir o aluno: ${error.message}`, 'error');
         }
     };
 
@@ -628,6 +656,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         } catch (error) {
             console.error("Erro ao popular dropdown de cursos:", error);
+            showToast(`Erro ao carregar cursos para o dropdown: ${error.message}`, 'error');
             select.innerHTML = '<option value="">Erro ao carregar cursos</option>';
         }
     };
@@ -700,6 +729,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         } catch (error) {
             console.error("Erro ao popular dropdown de cursos na página de conteúdo:", error);
+            showToast(`Erro ao carregar cursos para a gestão de conteúdo: ${error.message}`, 'error');
             dropdown.innerHTML = '<option value="">Não foi possível carregar</option>';
         }
     };
@@ -738,6 +768,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error("Erro ao renderizar aulas:", error);
+            showToast(`Erro ao carregar aulas: ${error.message}`, 'error');
             container.innerHTML = `<p class="error-message">Erro ao carregar as aulas: ${error.message}</p>`;
         }
     };
@@ -765,7 +796,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Se for uma nova aula (POST), precisamos do currentCourseIdForLessons
         if (method === 'POST') {
             if (!currentCourseIdForLessons) {
-                alert('Selecione um curso para adicionar a aula.');
+                showToast('Selecione um curso para adicionar a aula.', 'error');
                 return;
             }
             formData.append('curso_id', currentCourseIdForLessons);
@@ -778,21 +809,21 @@ document.addEventListener('DOMContentLoaded', () => {
             if (conteudoArquivo) {
                 formData.append('conteudo', conteudoArquivo);
             } else if (method === 'POST') { // Se for POST e upload, o arquivo é obrigatório
-                alert('Por favor, selecione um arquivo para upload.');
+                showToast('Por favor, selecione um arquivo para upload.', 'error');
                 return;
             }
             // Para PUT de upload, se o arquivo não for fornecido, assume-se que o conteúdo existente será mantido.
             // O backend deve lidar com isso.
         } else { // Conteúdo é texto ou link
             if (!conteudoTexto) {
-                alert('Por favor, preencha o conteúdo da aula.');
+                showToast('Por favor, preencha o conteúdo da aula.', 'error');
                 return;
             }
             formData.append('conteudo', conteudoTexto);
         }
 
         if (!titulo || !tipo) {
-            alert('Por favor, preencha o título e o tipo da aula.');
+            showToast('Por favor, preencha o título e o tipo da aula.', 'error');
             return;
         }
         
@@ -804,14 +835,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 // headers: { 'Authorization': `Bearer ${getToken()}` }, // O fetchData já adiciona o token
                 body: formData // FormData é enviado diretamente
             });
-            alert(`Aula ${editingAulaId ? 'atualizada' : 'adicionada'} com sucesso!`);
+            showToast(`Aula ${editingAulaId ? 'atualizada' : 'adicionada'} com sucesso!`, 'success');
             // Se estiver editando, o courseId pode não ser o currentCourseIdForLessons
             // Uma opção é passar o courseId da aula editada ou recarregar o curso atual.
             renderLessons(currentCourseIdForLessons);
             closeAulaModal();
         } catch (error) {
             console.error('Falha ao salvar aula:', error);
-            alert(`Não foi possível salvar a aula: ${error.message}`);
+            showToast(`Não foi possível salvar a aula: ${error.message}`, 'error');
         }
     };
     
@@ -842,7 +873,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('modal-nova-aula').classList.add('active');
         } catch (error) {
             console.error("Falha ao carregar aula para edição:", error);
-            alert(`Não foi possível carregar a aula para edição: ${error.message}`);
+            showToast(`Não foi possível carregar a aula para edição: ${error.message}`, 'error');
         }
     };
     
@@ -851,12 +882,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!window.confirm('Tem certeza que deseja excluir esta aula?')) return;
         try {
             await fetchData(`/api/aulas/${aulaId}`, { method: 'DELETE' });
-            alert('Aula excluída com sucesso!');
+            showToast('Aula excluída com sucesso!', 'success');
             // Recarrega as aulas do curso atualmente selecionado
             renderLessons(currentCourseIdForLessons);
         } catch (error) {
             console.error('Falha ao excluir aula:', error);
-            alert(`Não foi possível excluir a aula: ${error.message}`);
+            showToast(`Não foi possível excluir a aula: ${error.message}`, 'error');
         }
     };
 
@@ -941,9 +972,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 case 'edit-aula': await handleEditAula(aulaId); break;
                 case 'delete-aula': await handleDeleteAula(aulaId); break;
                 // NOVO: Ações para pagamentos (placeholders)
-                case 'view-payment-details': alert('Funcionalidade de Ver Detalhes do Pagamento (ID: ' + paymentId + ') em desenvolvimento!'); break;
-                case 'register-payment': alert('Funcionalidade de Registrar Pagamento (ID: ' + paymentId + ') em desenvolvimento!'); break;
-                case 'send-reminder': alert('Funcionalidade de Enviar Cobrança (ID: ' + paymentId + ') em desenvolvimento!'); break;
+                case 'view-payment-details': showToast('Funcionalidade de Ver Detalhes do Pagamento (ID: ' + paymentId + ') em desenvolvimento!', 'info'); break;
+                case 'register-payment': showToast('Funcionalidade de Registrar Pagamento (ID: ' + paymentId + ') em desenvolvimento!', 'info'); break;
+                case 'send-reminder': showToast('Funcionalidade de Enviar Cobrança (ID: ' + paymentId + ') em desenvolvimento!', 'info'); break;
                 default: console.warn('Ação não reconhecida:', action);
             }
             return; // Impede que o clique seja processado por outras lógicas
@@ -980,6 +1011,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Adicione outras páginas conforme necessário
         } catch (error) {
             console.error(`Erro ao carregar página ${page}:`, error);
+            showToast(`Erro ao carregar a página ${page}: ${error.message}`, 'error');
             mainContent.innerHTML = `<h1 class="error-message">Erro ao carregar a página.</h1><p class="error-message">${error.message}</p>`;
         }
     }
@@ -992,7 +1024,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (page === 'logout') {
                 event.preventDefault(); // Impede o comportamento padrão apenas para logout
                 localStorage.removeItem('adminToken'); // Remove o token
-                window.location.href = 'login.html'; // Redireciona para o login
+                showToast('Sessão encerrada com sucesso!', 'success');
+                setTimeout(() => { window.location.href = 'login.html'; }, 500);
                 return;
             }
             

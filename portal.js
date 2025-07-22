@@ -22,6 +22,25 @@ document.addEventListener('DOMContentLoaded', () => {
     // FUNÇÕES DE UTILIDADE E AUTENTICAÇÃO
     // ===============================================
 
+    // Função auxiliar para exibir toasts
+    function showToast(message, type = 'error') {
+        const backgroundColor = type === 'success' ? '#28a745' : type === 'info' ? '#17a2b8' : '#dc3545'; // Verde, Azul, Vermelho
+        Toastify({
+            text: message,
+            duration: 3000, // 3 segundos
+            close: true,
+            gravity: "top", // `top` ou `bottom`
+            position: "right", // `left`, `center` ou `right`
+            stopOnFocus: true, // Para o tempo do toast se o usuário focar nele
+            style: {
+                background: backgroundColor,
+                borderRadius: "5px",
+                padding: "10px 20px"
+            },
+            onClick: function(){} // Callback depois de clicar
+        }).showToast();
+    }
+
     // Decodifica um JWT para extrair os dados do payload
     function decodeJwt(token) {
         try {
@@ -29,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return JSON.parse(atob(token.split('.')[1]));
         } catch (e) {
             console.error("Erro ao decodificar JWT:", e);
+            showToast('Erro ao decodificar informações da sessão. Por favor, faça login novamente.', 'error');
             return null;
         }
     }
@@ -36,7 +56,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Lida com a saída do usuário, limpando o token e redirecionando para o login
     function handleLogout() {
         localStorage.removeItem('studentToken');
-        window.location.href = 'login.html';
+        showToast('Sessão encerrada com sucesso!', 'success');
+        setTimeout(() => { window.location.href = 'login.html'; }, 500);
     }
 
     // ===============================================
@@ -47,6 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function showContentInModal(tipo, conteudo, titulo) {
         if (!contentModal || !modalTitle || !modalBody) {
             console.error("Um ou mais elementos do modal não foram encontrados.");
+            showToast("Erro ao abrir conteúdo. Elementos do modal ausentes.", 'error');
             return;
         }
 
@@ -78,9 +100,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 contentHtml = `<div class="video-container"><iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen title="${titulo}"></iframe></div>`;
             } else {
                 contentHtml = `<p>Link de vídeo inválido ou não suportado. Por favor, verifique a URL.</p>`;
+                showToast('Link de vídeo inválido ou não suportado.', 'error');
             }
         } else {
             contentHtml = `<p>Tipo de conteúdo não suportado: ${tipo}.</p>`;
+            showToast(`Tipo de conteúdo "${tipo}" não suportado para visualização.`, 'error');
         }
         
         modalBody.innerHTML = contentHtml;
@@ -118,11 +142,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Renderiza a lista de cursos em que o aluno está inscrito
     async function renderMyCourses() {
         contentHeader.innerHTML = '<h1>Meus Cursos</h1>';
-        contentBody.innerHTML = `<p>Carregando seus cursos...</p>`; // Feedback de carregamento
+        contentBody.innerHTML = `<p class="loading-message">Carregando seus cursos...</p>`; // Feedback de carregamento
         try {
-            const response = await fetch(`/api/alunos/${currentUser.id}/cursos`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await fetch(`/api/alunos/${currentUser.id}/cursos`, { headers: { 'Authorization': `Bearer ${token}` } });
 
             if (!response.ok) {
                 // Tenta ler a mensagem de erro do servidor
@@ -134,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const courses = result.data; // Assumindo que o backend retorna { data: [...] }
 
             if (!courses || courses.length === 0) {
-                contentBody.innerHTML = '<h3>Você ainda não está inscrito em nenhum curso.</h3><p>Explore as opções ou entre em contato com a administração.</p>';
+                contentBody.innerHTML = '<h3 class="empty-message">Você ainda não está inscrito em nenhum curso.</h3><p>Explore as opções ou entre em contato com a administração.</p>';
                 return;
             }
 
@@ -148,18 +170,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error('Falha ao carregar cursos:', error);
-            contentBody.innerHTML = `<p style="color: red;">${error.message}</p>`;
+            showToast(`Erro ao carregar cursos: ${error.message}`, 'error');
+            contentBody.innerHTML = `<p class="error-message">Erro ao carregar seus cursos: ${error.message}</p>`;
         }
     }
     
     // Renderiza as aulas de um curso específico
     async function renderCourseLessons(courseId, courseName) {
         contentHeader.innerHTML = `<h1>${courseName}</h1>`;
-        contentBody.innerHTML = `<p>Carregando aulas...</p>`;
+        contentBody.innerHTML = `<p class="loading-message">Carregando aulas...</p>`;
         try {
-            const response = await fetch(`/api/alunos/${currentUser.id}/cursos/${courseId}/aulas`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await fetch(`/api/alunos/${currentUser.id}/cursos/${courseId}/aulas`, { headers: { 'Authorization': `Bearer ${token}` } });
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ message: 'Erro desconhecido ao carregar aulas.' }));
                 throw new Error(errorData.message || 'Não foi possível carregar as aulas.');
@@ -170,7 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!lessons || lessons.length === 0) {
                 contentBody.innerHTML = `
                     <div class="back-button" data-view="meus-cursos">← Voltar para Meus Cursos</div>
-                    <p>Este curso ainda não possui aulas cadastradas.</p>
+                    <p class="empty-message">Este curso ainda não possui aulas cadastradas.</p>
                 `;
                 return;
             }
@@ -195,14 +216,15 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         } catch(error) {
             console.error('Falha ao carregar aulas:', error);
-            contentBody.innerHTML = `<p style="color: red;">${error.message}</p>`;
+            showToast(`Erro ao carregar aulas: ${error.message}`, 'error');
+            contentBody.innerHTML = `<p class="error-message">Erro ao carregar as aulas: ${error.message}</p>`;
         }
     }
 
     // Renderiza o progresso do aluno em todos os cursos
     async function renderMyProgress() {
         contentHeader.innerHTML = '<h1>Meu Progresso</h1>';
-        contentBody.innerHTML = `<p>Calculando seu progresso...</p>`;
+        contentBody.innerHTML = `<p class="loading-message">Calculando seu progresso...</p>`;
         try {
             const response = await fetch(`/api/alunos/${currentUser.id}/progresso`, {
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -215,7 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const progressData = result.data; // Assumindo { data: [...] }
 
             if (!progressData || progressData.length === 0) {
-                contentBody.innerHTML = '<h3>Você não tem progresso para exibir pois não está inscrito em cursos.</h3>';
+                contentBody.innerHTML = '<h3 class="empty-message">Você não tem progresso para exibir pois não está inscrito em cursos.</h3>';
                 return;
             }
 
@@ -237,7 +259,8 @@ document.addEventListener('DOMContentLoaded', () => {
             contentBody.innerHTML = `<div class="progress-container">${progressCardsHtml}</div>`;
         } catch (error) {
             console.error('Falha ao carregar progresso:', error);
-            contentBody.innerHTML = `<p style="color: red;">${error.message}</p>`;
+            showToast(`Erro ao carregar progresso: ${error.message}`, 'error');
+            contentBody.innerHTML = `<p class="error-message">Erro ao carregar seu progresso: ${error.message}</p>`;
         }
     }
 
@@ -245,10 +268,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderMyProfile() {
         contentHeader.innerHTML = '<h1>Meu Perfil</h1>';
         contentBody.innerHTML = `
-            <p><strong>Nome:</strong> ${currentUser.nome || 'Não informado'}</p>
-            <p><strong>Email:</strong> ${currentUser.email}</p>
-            <p><strong>Tipo de Usuário:</strong> Aluno</p>
-            <p>Esta seção está em desenvolvimento. Em breve você poderá editar suas informações aqui!</p>
+            <div class="content-card">
+                <p><strong>Nome:</strong> ${currentUser.nome || 'Não informado'}</p>
+                <p><strong>Email:</strong> ${currentUser.email}</p>
+                <p><strong>Tipo de Usuário:</strong> Aluno</p>
+                <p>Esta seção está em desenvolvimento. Em breve você poderá editar suas informações aqui!</p>
+            </div>
         `;
     }
 
@@ -272,6 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(errorData.message || 'Não foi possível salvar o progresso.');
             }
 
+            showToast('Aula marcada como concluída!', 'success');
             buttonElement.textContent = 'Concluída';
             const lessonItem = buttonElement.closest('.lesson-item');
             if (lessonItem) {
@@ -281,7 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // renderMyProgress(); 
         } catch (error) {
             console.error("Erro ao marcar aula como concluída:", error);
-            alert(`Erro: ${error.message}`); // Exibe um alerta com a mensagem de erro
+            showToast(`Erro ao marcar aula como concluída: ${error.message}`, 'error');
             buttonElement.disabled = false; // Habilita o botão novamente em caso de falha
             buttonElement.textContent = 'Marcar como Concluída';
         }
@@ -323,7 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
             default:
                 // Caso alguma view não tenha uma função específica ainda
                 contentHeader.innerHTML = `<h1>${clickedItem.querySelector('span:last-child').textContent}</h1>`;
-                contentBody.innerHTML = `<p>Seção em desenvolvimento: ${clickedItem.querySelector('span:last-child').textContent}.</p>`;
+                contentBody.innerHTML = `<p class="empty-message">Seção em desenvolvimento: ${clickedItem.querySelector('span:last-child').textContent}.</p>`;
         }
     }
 
