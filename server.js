@@ -298,7 +298,7 @@ app.delete('/api/cursos/:id', authenticateToken, authorizeAdmin, async (req, res
         res.json({ message: "Curso e todos os seus dados associados foram excluídos com sucesso!" });
     } catch (err) {
         console.error('Erro ao excluir curso:', err);
-        res.status(500).json({ error: "Erro interno do servidor ao excluir curso." });
+        res.status(500).json({ error: "Erro interno do servidor." });
     }
 });
 
@@ -757,16 +757,24 @@ app.get('/api/dashboard/course-progress', authenticateToken, authorizeAdmin, asy
     try {
         const sql = `
             SELECT
+                c.id AS course_id,
                 c.name AS course_name,
-                (SELECT COUNT(a.id) FROM aulas a WHERE a.curso_id = c.id)::int AS total_lessons,
-                (SELECT COUNT(DISTINCT p.aula_id) FROM progresso p JOIN aulas a ON p.aula_id = a.id WHERE a.curso_id = c.id)::int AS completed_lessons,
+                COUNT(a.id)::int AS total_lessons,
+                COUNT(p.aula_id)::int AS completed_lessons,
                 CASE
-                    WHEN (SELECT COUNT(a.id) FROM aulas a WHERE a.curso_id = c.id) = 0 THEN 0
-                    ELSE ROUND((COUNT(DISTINCT p.aula_id)::numeric / (SELECT COUNT(a.id) FROM aulas a WHERE a.curso_id = c.id)) * 100)
+                    WHEN COUNT(a.id) = 0 THEN 0
+                    ELSE ROUND((COUNT(p.aula_id)::numeric / COUNT(a.id)) * 100)
                 END AS percentage
             FROM
                 cursos c
-            ORDER BY c.name;
+            LEFT JOIN
+                aulas a ON c.id = a.curso_id
+            LEFT JOIN
+                progresso p ON a.id = p.aula_id
+            GROUP BY
+                c.id, c.name
+            ORDER BY
+                c.name;
         `;
         const result = await pool.query(sql);
         res.json({ message: "Progresso dos cursos para dashboard", data: result.rows });
@@ -803,7 +811,7 @@ app.get('/api/dashboard/recent-students', authenticateToken, authorizeAdmin, asy
                 al.id, al.name, al.email
             ORDER BY
                 last_access DESC NULLS LAST
-            LIMIT 5; -- Retorna os 5 alunos com acesso mais recente
+            LIMIT 5;
         `;
         const result = await pool.query(sql);
         res.json({ message: "Alunos recentes para dashboard", data: result.rows });
@@ -815,25 +823,8 @@ app.get('/api/dashboard/recent-students', authenticateToken, authorizeAdmin, asy
 
 // ------------------- Rotas de Financeiro (NOVAS) -------------------
 
-// Mock de dados de pagamento (substitua por dados reais do BD)
-// NOTE: Você precisará criar uma tabela de 'pagamentos' no seu banco de dados para que isso seja persistente
-/*
-Exemplo de tabela de pagamentos:
-CREATE TABLE IF NOT EXISTS pagamentos (
-    id SERIAL PRIMARY KEY,
-    aluno_id INTEGER NOT NULL REFERENCES alunos(id) ON DELETE CASCADE,
-    curso_id INTEGER REFERENCES cursos(id) ON DELETE SET NULL,
-    amount NUMERIC(10, 2) NOT NULL,
-    due_date DATE NOT NULL,
-    payment_date DATE, -- Data em que foi pago
-    status TEXT NOT NULL CHECK (status IN ('Pago', 'Pendente', 'Atrasado')),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-*/
-
 app.get('/api/financeiro/stats', authenticateToken, authorizeAdmin, async (req, res) => {
     try {
-        // Exemplo de queries (ajuste para sua estrutura real de pagamentos)
         const receitaTotalResult = await pool.query("SELECT COALESCE(SUM(amount), 0)::numeric FROM pagamentos WHERE status = 'Pago';");
         const receitaMesResult = await pool.query("SELECT COALESCE(SUM(amount), 0)::numeric FROM pagamentos WHERE status = 'Pago' AND payment_date >= date_trunc('month', CURRENT_DATE);");
         const alunosAtivosResult = await pool.query("SELECT COUNT(DISTINCT aluno_id) FROM inscricoes;");
