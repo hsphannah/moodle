@@ -1,6 +1,21 @@
 /* Importando a fonte que usamos no resto do projeto */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
+:root {
+    --primary-color: #e5383b;
+    --text-color: #333;
+    --spacing-md: 16px;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    color: var(--text-color); /* Usa a variável aqui */
+}
+
+.btn-login {
+    background-color: var(--primary-color); /* Usa a variável aqui */
+    padding: var(--spacing-md);
+}
 * {
     margin: 0;
     padding: 0;

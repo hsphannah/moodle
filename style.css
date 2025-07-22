@@ -1,7 +1,54 @@
 /* Importando uma fonte bonita (Inter) do Google Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-/* Reset básico e configurações globais */
+/* --- Variáveis CSS (Custom Properties) --- */
+:root {
+    /* Cores */
+    --cor-primaria: #e5383b;            /* Vermelho principal */
+    --cor-primaria-hover: #c02d30;      /* Vermelho mais escuro no hover */
+    --cor-fundo-pagina: #f8f9fa;        /* Cinza bem claro para o fundo da página */
+    --cor-card: #ffffff;                /* Fundo de cards e modais */
+    --cor-borda-card: #e9ecef;          /* Borda para cards e elementos */
+    --cor-borda-input: #ced4da;         /* Borda para inputs */
+    --cor-borda-divisoria: #e9ecef;     /* Borda para divisórias e separadores */
+    --cor-texto-principal: #333;        /* Cor de texto padrão */
+    --cor-texto-secundario: #6c757d;    /* Cinza para textos secundários */
+    --cor-texto-sidebar-item: #5a6474;  /* Cor de texto para itens da sidebar */
+    --cor-fundo-hover-sidebar: #f1f3f5; /* Fundo de hover para itens da sidebar */
+    --cor-sucesso: #28a745;             /* Verde para sucesso */
+    --cor-sucesso-light: #28a7451a;     /* Verde claro para badges e fundos leves */
+    --cor-perigo: #dc3545;              /* Vermelho para perigo/excluir */
+    --cor-perigo-light: #dc35451a;      /* Vermelho claro para badges/botões */
+    --cor-alerta: #d9a206;              /* Amarelo para alerta */
+    --cor-alerta-light: #ffc1071a;      /* Amarelo claro para badges */
+    --cor-icone-btn-padrao: #adb5bd;    /* Cor padrão para ícones de botão (não hover) */
+
+    /* Espaçamentos e Radios de Borda */
+    --spacing-xs: 5px;
+    --spacing-sm: 8px;
+    --spacing-md: 10px;
+    --spacing-lg: 15px;
+    --spacing-xl: 20px;
+    --spacing-xxl: 25px;
+    --spacing-xxxl: 30px;
+    --spacing-xxxxl: 40px;
+
+    --border-radius-sm: 5px;
+    --border-radius-md: 8px;
+    --border-radius-lg: 12px;
+    --border-radius-circle: 50%;
+
+    /* Sombras */
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+    --shadow-md: 0 5px 15px rgba(0,0,0,0.3); /* Usado no modal */
+    --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.08); /* Para hover de cards */
+
+    /* Transições */
+    --transition-speed-fast: 0.2s;
+    --transition-speed-normal: 0.3s;
+}
+
+/* --- Reset básico e configurações globais --- */
 * {
     margin: 0;
     padding: 0;
@@ -10,147 +57,147 @@
 
 body {
     font-family: 'Inter', sans-serif;
-    background-color: #f8f9fa; /* Um cinza bem claro para o fundo */
-    color: #333;
+    background-color: var(--cor-fundo-pagina);
+    color: var(--cor-texto-principal);
 }
 
-/* Container principal usando Flexbox */
+/* --- Container principal usando Flexbox --- */
 .portal-container {
     display: flex;
 }
 
-/* Estilos da Barra Lateral (Sidebar) */
+/* --- Estilos da Barra Lateral (Sidebar) --- */
 .sidebar {
     width: 250px;
-    background-color: #ffffff;
+    background-color: var(--cor-card);
     min-height: 100vh;
-    border-right: 1px solid #e9ecef;
-    padding: 20px;
+    border-right: 1px solid var(--cor-borda-card);
+    padding: var(--spacing-xl);
     display: flex;
     flex-direction: column;
 }
 
 .sidebar-header h3 {
     font-size: 1.5rem;
-    margin-bottom: 30px;
+    margin-bottom: var(--spacing-xxxl);
     text-align: center;
 }
 
 .sidebar-nav {
     display: flex;
     flex-direction: column;
-    gap: 10px; /* Espaçamento entre os links */
+    gap: var(--spacing-md);
 }
 
 .nav-item {
     display: flex;
     align-items: center;
-    gap: 15px; /* Espaço entre o ícone e o texto */
-    padding: 12px 15px;
-    border-radius: 8px;
+    gap: var(--spacing-lg);
+    padding: 12px var(--spacing-lg);
+    border-radius: var(--border-radius-md);
     text-decoration: none;
-    color: #5a6474;
+    color: var(--cor-texto-sidebar-item);
     font-weight: 500;
-    transition: background-color 0.3s, color 0.3s;
+    transition: background-color var(--transition-speed-normal), color var(--transition-speed-normal);
 }
 
 .nav-item:hover {
-    background-color: #f1f3f5;
+    background-color: var(--cor-fundo-hover-sidebar);
 }
 
 /* Estilo do item ativo (página atual) */
 .nav-item.active {
-    background-color: #e5383b; /* Vermelho, como no seu design */
-    color: #ffffff;
+    background-color: var(--cor-primaria);
+    color: var(--cor-card); /* texto branco */
 }
 
-/* Estilos do Conteúdo Principal */
+/* --- Estilos do Conteúdo Principal --- */
 .main-content {
-    flex-grow: 1; /* Faz o conteúdo principal ocupar o espaço restante */
-    padding: 40px;
+    flex-grow: 1;
+    padding: var(--spacing-xxxxl);
 }
 
-/* Ajuste fino dos ícones do Google */
+/* Ajuste fino dos ícones do Google Material Symbols */
 .material-symbols-outlined {
-  font-variation-settings:
-  'FILL' 0,
-  'wght' 400,
-  'GRAD' 0,
-  'opsz' 24
+    font-variation-settings:
+    'FILL' 0,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24;
 }
 
 /* --- Estilos do Dashboard --- */
 .main-header {
-    margin-bottom: 30px;
+    margin-bottom: var(--spacing-xxxl);
 }
 
 .main-header h1,
 .main-header-with-button .header-title h1 {
     font-size: 2rem;
     font-weight: 700;
-    margin-bottom: 5px;
+    margin-bottom: var(--spacing-xs);
 }
 
 .main-header p,
 .main-header-with-button .header-title p {
-    color: #6c757d;
+    color: var(--cor-texto-secundario);
 }
 
 .stat-cards-container {
     display: flex;
-    gap: 20px;
-    margin-bottom: 30px;
+    gap: var(--spacing-xl);
+    margin-bottom: var(--spacing-xxxl);
 }
 
 .stat-card {
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 20px;
-    background-color: #ffffff;
-    padding: 25px;
-    border-radius: 8px;
-    border: 1px solid #e9ecef;
+    gap: var(--spacing-xl);
+    background-color: var(--cor-card);
+    padding: var(--spacing-xxl);
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--cor-borda-card);
 }
 
 .stat-card .icon {
     font-size: 40px;
-    color: #e5383b;
+    color: var(--cor-primaria);
 }
 
 .stat-info p {
     font-size: 0.9rem;
-    color: #6c757d;
+    color: var(--cor-texto-secundario);
 }
 
 .stat-info strong {
-    font-size: 2rem;
+    font-size: 2rem; /* Mantido grande para destaque */
     font-weight: 700;
 }
 
 .content-cards-container {
     display: flex;
-    gap: 20px;
+    gap: var(--spacing-xl);
 }
 
 .content-card {
     flex: 1;
-    background-color: #ffffff;
-    padding: 25px;
-    border-radius: 8px;
-    border: 1px solid #e9ecef;
+    background-color: var(--cor-card);
+    padding: var(--spacing-xxl);
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--cor-borda-card);
 }
 
 .content-card h2 {
     font-size: 1.2rem;
-    margin-bottom: 20px;
+    margin-bottom: var(--spacing-xl);
 }
 
 .course-progress-item {
     display: flex;
     align-items: center;
-    gap: 15px;
-    margin-bottom: 15px;
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
 }
 
 .course-progress-item span:first-child {
@@ -159,23 +206,23 @@ body {
 
 .progress-bar {
     flex-grow: 1;
-    height: 10px;
-    background-color: #e9ecef;
-    border-radius: 5px;
+    height: var(--spacing-md);
+    background-color: var(--cor-borda-card); /* Usando cor de borda para fundo da barra */
+    border-radius: var(--border-radius-sm);
     overflow: hidden;
 }
 
 .progress-bar-fill {
     height: 100%;
-    background-color: #e5383b;
-    border-radius: 5px;
+    background-color: var(--cor-primaria);
+    border-radius: var(--border-radius-sm);
 }
 
 .student-list-item {
     display: flex;
     justify-content: space-between;
-    padding: 15px 0;
-    border-bottom: 1px solid #f1f3f5;
+    padding: var(--spacing-lg) 0;
+    border-bottom: 1px solid var(--cor-fundo-hover-sidebar); /* Uma borda mais sutil */
 }
 
 .student-list-item:last-child {
@@ -187,131 +234,143 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 30px;
+    margin-bottom: var(--spacing-xxxl);
 }
 
+/* Estilos de botões genéricos */
 .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 10px 20px;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md) var(--spacing-xl);
     border: none;
-    border-radius: 8px;
+    border-radius: var(--border-radius-md);
     font-weight: 600;
     font-size: 0.9rem;
     cursor: pointer;
-    transition: background-color 0.3s;
+    transition: background-color var(--transition-speed-normal);
 }
 
 .btn-primary {
-    background-color: #e5383b;
-    color: white;
+    background-color: var(--cor-primaria);
+    color: var(--cor-card); /* texto branco */
 }
 .btn-primary:hover {
-    background-color: #c02d30;
+    background-color: var(--cor-primaria-hover);
 }
 
 .btn-secondary {
-    background-color: #f1f3f5;
-    color: #333;
-    border: 1px solid #dee2e6;
+    background-color: var(--cor-fundo-hover-sidebar);
+    color: var(--cor-texto-principal);
+    border: 1px solid var(--cor-borda-card);
 }
 .btn-secondary:hover {
-    background-color: #e9ecef;
+    background-color: var(--cor-borda-card);
 }
 
 .btn-danger {
-    background-color: #dc35451a;
-    color: #dc3545;
+    background-color: var(--cor-perigo-light);
+    color: var(--cor-perigo);
 }
 .btn-danger:hover {
-    background-color: #dc354533;
+    background-color: var(--cor-perigo-light); /* manter o mesmo tom, ou escurecer um pouco */
+    opacity: 0.8; /* Adicionar uma pequena opacidade no hover */
 }
 
+/* Estilos para cards de curso */
 .course-cards-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 20px;
+    gap: var(--spacing-xl);
 }
 
 .course-card {
-    background-color: #ffffff;
-    border: 1px solid #e9ecef;
-    border-radius: 8px;
+    background-color: var(--cor-card);
+    border: 1px solid var(--cor-borda-card);
+    border-radius: var(--border-radius-md);
     display: flex;
     flex-direction: column;
+    box-shadow: var(--shadow-sm); /* Sombra padrão */
+    transition: box-shadow var(--transition-speed-fast); /* Transição para sombra */
 }
 
-.course-card-header { padding: 15px 20px; }
+.course-card:hover {
+    box-shadow: var(--shadow-card-hover); /* Sombra no hover */
+}
+
+.course-card-header {
+    padding: var(--spacing-lg) var(--spacing-xl);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
 
 .status-badge {
-    background-color: #28a7451a;
-    color: #28a745;
-    padding: 4px 10px;
-    border-radius: 12px;
+    background-color: var(--cor-sucesso-light);
+    color: var(--cor-sucesso);
+    padding: 4px var(--spacing-md);
+    border-radius: var(--border-radius-lg);
     font-size: 0.8rem;
     font-weight: 600;
 }
 
 .course-card-body {
-    padding: 0 20px 15px 20px;
+    padding: 0 var(--spacing-xl) var(--spacing-lg) var(--spacing-xl);
     flex-grow: 1;
 }
 .course-card-body h2 {
     font-size: 1.2rem;
-    margin-bottom: 5px;
+    margin-bottom: var(--spacing-xs);
 }
 .course-card-body p {
     font-size: 0.9rem;
-    color: #6c757d;
-    margin-bottom: 20px;
-    min-height: 40px;
-}
-
-.progress-section {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    font-size: 0.8rem;
-    color: #6c757d;
-}
-
-.course-card-footer {
-    padding: 15px 20px;
-    border-top: 1px solid #e9ecef;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    color: var(--cor-texto-secundario);
+    margin-bottom: var(--spacing-xl);
+    min-height: 40px; /* Garante altura mínima para descrição */
+    line-height: 1.4;
 }
 
 .course-stats {
     display: flex;
-    gap: 15px;
+    gap: var(--spacing-lg);
     font-size: 0.8rem;
-    color: #6c757d;
+    color: var(--cor-texto-secundario);
 }
 
 .course-actions {
     display: flex;
-    gap: 10px;
+    gap: var(--spacing-md);
+}
+
+.course-card-footer {
+    padding: var(--spacing-lg) var(--spacing-xl);
+    border-top: 1px solid var(--cor-borda-card);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 /* --- Estilos da Página de Alunos --- */
 .student-list-container {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: var(--spacing-lg);
 }
 
 .student-list-item-card {
     display: flex;
     align-items: center;
-    padding: 20px;
-    background-color: #ffffff;
-    border: 1px solid #e9ecef;
-    border-radius: 8px;
+    padding: var(--spacing-xl);
+    background-color: var(--cor-card);
+    border: 1px solid var(--cor-borda-card);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow var(--transition-speed-fast);
+}
+
+.student-list-item-card:hover {
+    box-shadow: var(--shadow-card-hover);
 }
 
 .student-info,
@@ -331,13 +390,13 @@ body {
 .student-name {
     font-size: 1rem;
     font-weight: 600;
-    color: #343a40;
+    color: var(--cor-texto-principal);
 }
 
 .student-email,
 .info-label {
     font-size: 0.8rem;
-    color: #6c757d;
+    color: var(--cor-texto-secundario);
 }
 
 .student-course-info strong,
@@ -345,73 +404,62 @@ body {
 .student-activity-info strong {
     font-size: 0.9rem;
     font-weight: 500;
-    color: #343a40;
+    color: var(--cor-texto-principal);
 }
+
 /* --- Estilos da Página de Conteúdo --- */
 
 .content-grid-container {
     display: grid;
     grid-template-columns: 2fr 1fr; /* A primeira coluna é 2x maior que a segunda */
-    gap: 20px;
+    gap: var(--spacing-xl);
     align-items: flex-start; /* Alinha os cards ao topo */
 }
 
-/* Reutilizando a classe .content-card, mas adicionando um subtítulo */
+/* Subtítulo para cards (reutilizável) */
 .card-subtitle {
-    color: #6c757d;
+    color: var(--cor-texto-secundario);
     font-size: 0.9rem;
-    margin-top: -15px;
-    margin-bottom: 25px;
+    margin-top: calc(-1 * var(--spacing-lg)); /* Ajuste de margem negativa */
+    margin-bottom: var(--spacing-xxl);
 }
 
-/* Área de Upload de Arquivo */
+/* Área de Drop de Arquivo */
 .file-drop-area {
-    border: 2px dashed #dee2e6;
-    border-radius: 8px;
-    padding: 40px 20px;
+    border: 2px dashed var(--cor-borda-card);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-xxxxl) var(--spacing-xl);
     text-align: center;
-    background-color: #f8f9fa;
-    margin-bottom: 25px;
+    background-color: var(--cor-fundo-pagina);
+    margin-bottom: var(--spacing-xxl);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    gap: var(--spacing-md);
 }
 
 .file-drop-area .icon-large {
     font-size: 48px;
-    color: #adb5bd;
+    color: var(--cor-icone-btn-padrao); /* Cor mais neutra para ícone de drop */
 }
 
 .file-drop-area p {
     font-weight: 600;
-    color: #495057;
+    color: var(--cor-texto-principal);
 }
 
 .file-formats {
     font-size: 0.8rem;
-    color: #6c757d;
-}
-
-/* Estado Vazio (para a biblioteca) */
-.empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    gap: 10px;
-    padding: 40px 20px;
-    height: 100%;
-    min-height: 200px;
+    color: var(--cor-texto-secundario);
 }
 
 /* Estilos para campos de formulário */
 .form-group {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-xl); /* Adicionado para espaçamento entre grupos */
 }
 
 .form-group label {
@@ -419,50 +467,62 @@ body {
     font-size: 0.9rem;
 }
 
-.form-select {
-    padding: 10px;
-    border: 1px solid #ced4da;
-    border-radius: 8px;
-    background-color: #ffffff;
+.form-input {
+    width: 100%;
+    padding: var(--spacing-md);
+    border: 1px solid var(--cor-borda-input);
+    border-radius: var(--border-radius-md);
     font-family: 'Inter', sans-serif;
     font-size: 1rem;
 }
+
+.form-select {
+    width: 100%; /* Garante que o select ocupe toda a largura */
+    padding: var(--spacing-md);
+    border: 1px solid var(--cor-borda-input);
+    border-radius: var(--border-radius-md);
+    background-color: var(--cor-card);
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    color: var(--cor-texto-principal);
+}
+
 /* --- Estilos da Página Financeira --- */
 
 .header-actions {
     display: flex;
-    gap: 10px;
+    gap: var(--spacing-md);
 }
 
-/* Deixando os números dos cards financeiros um pouco menores */
+/* Ajustando o tamanho da fonte dos números dos cards financeiros */
 .stat-card .stat-info strong {
-    font-size: 1.5rem;
+    font-size: 1.8rem; /* Ligeiramente menor que o padrão do dashboard */
 }
 
 /* Abas de Navegação (Tabs) */
 .tabs-container {
     display: flex;
-    gap: 10px;
-    border-bottom: 2px solid #e9ecef;
-    margin-bottom: 30px;
+    gap: var(--spacing-md);
+    border-bottom: 2px solid var(--cor-borda-divisoria);
+    margin-bottom: var(--spacing-xxxl);
 }
 
 .tab-item {
-    padding: 10px 20px;
+    padding: var(--spacing-md) var(--spacing-xl);
     text-decoration: none;
-    color: #6c757d;
+    color: var(--cor-texto-secundario);
     font-weight: 600;
     border-bottom: 2px solid transparent;
-    transition: color 0.3s, border-color 0.3s;
+    transition: color var(--transition-speed-normal), border-color var(--transition-speed-normal);
 }
 
 .tab-item:hover {
-    color: #343a40;
+    color: var(--cor-texto-principal);
 }
 
 .tab-item.active {
-    color: #e5383b;
-    border-bottom-color: #e5383b;
+    color: var(--cor-primaria);
+    border-bottom-color: var(--cor-primaria);
 }
 
 /* Lista de Pagamentos */
@@ -474,8 +534,8 @@ body {
 .payment-list-item {
     display: flex;
     align-items: center;
-    padding: 20px 0;
-    border-bottom: 1px solid #e9ecef;
+    padding: var(--spacing-xl) 0;
+    border-bottom: 1px solid var(--cor-borda-divisoria);
 }
 .payment-list-item:last-child {
     border-bottom: none;
@@ -487,14 +547,14 @@ body {
     flex-direction: column;
 }
 .payment-student-info strong { font-weight: 600; }
-.payment-student-info span { font-size: 0.9rem; color: #6c757d; }
+.payment-student-info span { font-size: 0.9rem; color: var(--cor-texto-secundario); }
 
 .payment-details {
     flex: 2;
     display: flex;
     flex-direction: column;
 }
-.payment-details span:last-child { font-size: 0.9rem; color: #6c757d; }
+.payment-details span:last-child { font-size: 0.9rem; color: var(--cor-texto-secundario); }
 
 .payment-status {
     flex: 1;
@@ -504,22 +564,23 @@ body {
     flex: 2;
     display: flex;
     justify-content: flex-end;
-    gap: 10px;
+    gap: var(--spacing-md);
 }
 
 /* Variações de cor para o Status Badge */
 .status-badge.paid {
-    background-color: #28a7451a;
-    color: #28a745;
+    background-color: var(--cor-sucesso-light);
+    color: var(--cor-sucesso);
 }
 .status-badge.pending {
-    background-color: #ffc1071a;
-    color: #d9a206;
+    background-color: var(--cor-alerta-light);
+    color: var(--cor-alerta);
 }
 .status-badge.overdue {
-    background-color: #dc35451a;
-    color: #dc3545;
+    background-color: var(--cor-perigo-light);
+    color: var(--cor-perigo);
 }
+
 /* --- Estilos para Conteúdo das Abas --- */
 .tab-content {
     display: none; /* Esconde todas as abas por padrão */
@@ -528,6 +589,224 @@ body {
 .tab-content.active {
     display: block; /* Mostra apenas a aba ativa */
 }
+
+/* --- Estilos para Mensagens de Estado (Vazio, Carregando, Erro) --- */
+.empty-message, .loading-message, .error-message {
+    width: 100%;
+    text-align: center;
+    padding: var(--spacing-xxxxl);
+    border-radius: var(--border-radius-md);
+    border: 1px dashed var(--cor-borda-card);
+    background-color: var(--cor-fundo-pagina);
+    color: var(--cor-texto-secundario);
+    font-weight: 500;
+}
+
+.error-message {
+    color: var(--cor-perigo);
+    border-color: var(--cor-perigo);
+    background-color: rgba(220, 53, 69, 0.05); /* Um fundo levemente avermelhado */
+}
+
+/* --- Estilo para botão de ícone (lixeira, editar, etc.) --- */
+.btn-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--cor-icone-btn-padrao);
+    padding: var(--spacing-xs);
+    border-radius: var(--border-radius-circle);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color var(--transition-speed-fast), color var(--transition-speed-fast);
+}
+.btn-icon:hover {
+    color: var(--cor-perigo); /* Vermelho para ação de exclusão */
+    background-color: var(--cor-fundo-hover-sidebar);
+}
+/* Para ícones de edição, talvez uma cor diferente no hover */
+.btn-icon[data-action^="edit"]:hover { /* Seleciona botões de ícone que começam com "edit" */
+    color: var(--cor-primaria); /* Ex: Vermelho primário para editar */
+    background-color: var(--cor-fundo-hover-sidebar);
+}
+
+/* Estilo para alinhar nome do aluno e lixeira */
+.student-name-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+/* Estilos para a barra de seleção de aluno (e outros dropdowns sticky) */
+.student-selector-bar {
+    background-color: var(--cor-card);
+    padding: var(--spacing-md) var(--spacing-xxxxl);
+    border-bottom: 1px solid var(--cor-borda-divisoria);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-lg);
+    position: sticky; /* Permite que a barra fixe ao topo */
+    top: 0;
+    z-index: 10; /* Garante que fique acima de outros conteúdos rolantes */
+}
+.student-selector-bar label {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+/* Já coberto por .form-select, mas reforcando */
+.student-selector-bar .form-select {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    min-width: 250px;
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--cor-borda-input);
+    background-color: var(--cor-fundo-pagina);
+}
+
+/* --- Estilos para a Lista de Aulas (Conteúdo) --- */
+#lessons-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+.lesson-list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-xl);
+    background-color: var(--cor-card);
+    border: 1px solid var(--cor-borda-card);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow var(--transition-speed-fast);
+}
+
+.lesson-list-item:hover {
+    box-shadow: var(--shadow-card-hover);
+}
+
+.lesson-list-item span {
+    font-weight: 500;
+    color: var(--cor-texto-principal);
+}
+
+.lesson-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+
+/* ========================================= */
+/* --- ESTILOS DO MODAL (Geral para Admin) --- */
+/* ========================================= */
+
+.modal {
+    display: none; /* Escondido por padrão */
+    position: fixed; /* Fica fixo na tela */
+    z-index: 1000; /* Fica na frente de tudo */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Fundo preto semi-transparente */
+
+    /* Centraliza o conteúdo do modal */
+    display: flex; /* Mudei para flex para sempre usar flexbox para centralizar */
+    justify-content: center;
+    align-items: center;
+}
+
+/* Classe que será adicionada pelo JS para mostrar o modal */
+.modal:not(.active) { /* Esconde o modal por padrão, a menos que tenha a classe 'active' */
+    display: none;
+}
+.modal.active { /* Sobrescreve para mostrar quando ativo */
+    display: flex;
+}
+
+
+.modal-content {
+    background-color: var(--cor-card);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-xxl);
+    width: 90%;
+    max-width: 500px; /* Largura máxima padrão para modais de formulário */
+    box-shadow: var(--shadow-md); /* Sombra mais proeminente */
+    max-height: 90vh; /* Garante que o modal não seja muito alto em telas pequenas */
+    overflow-y: auto; /* Adiciona scroll se o conteúdo for muito grande */
+}
+
+/* Ajuste para modal de detalhes de curso, que pode ser maior */
+#modal-detalhes-curso .modal-content {
+    max-width: 700px; /* Mais largo para detalhes */
+}
+
+/* Estilos de cabeçalho do modal */
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--cor-borda-divisoria);
+    padding-bottom: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+.modal-header h2 {
+    font-size: 1.5rem;
+    margin: 0;
+    color: var(--cor-texto-principal);
+}
+
+.close-button {
+    background: none;
+    border: none;
+    font-size: 2rem; /* Tamanho do "X" */
+    font-weight: 300;
+    cursor: pointer;
+    color: var(--cor-texto-secundario);
+    transition: color var(--transition-speed-fast);
+}
+.close-button:hover {
+    color: var(--cor-perigo); /* Vermelho no hover para fechar */
+}
+
+/* Estilos de rodapé do modal */
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-md);
+    border-top: 1px solid var(--cor-borda-divisoria);
+    padding-top: var(--spacing-xl);
+    margin-top: var(--spacing-xl);
+}
+
+/* --- Estilos para Alunos Inscritos no Detalhes do Curso Modal --- */
+.enrolled-student-list {
+    list-style: none;
+    padding: 0;
+    margin-top: var(--spacing-lg);
+}
+
+.enrolled-student-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm) 0;
+    border-bottom: 1px dashed var(--cor-borda-card); /* Linha tracejada */
+    font-size: 0.9rem;
+    color: var(--cor-texto-principal);
+}
+
+.enrolled-student-list li:last-child {
+    border-bottom: none;
+}
+
+/* --- Estilos para campos de formulário (Reusáveis) --- */
+/* Já definidos acima para .form-input e .form-select */
+
+
 /* ========================================= */
 /* --- ESTILOS DE RESPONSIVIDADE --- */
 /* ========================================= */
@@ -538,8 +817,10 @@ body {
         /* Na página de Conteúdo, as colunas ficam uma sobre a outra */
         grid-template-columns: 1fr;
     }
+    .stat-card .stat-info strong {
+        font-size: 1.5rem; /* Ajusta o tamanho da fonte para caber melhor */
+    }
 }
-
 
 /* Para telas de tablet - abaixo de 992px */
 @media (max-width: 992px) {
@@ -555,29 +836,57 @@ body {
         flex-direction: row; /* Itens ficam lado a lado */
         justify-content: space-between; /* Espalha os itens */
         align-items: center;
-        padding: 10px 20px;
+        padding: var(--spacing-md) var(--spacing-xl);
+        border-right: none;
+        border-bottom: 1px solid var(--cor-borda-card);
     }
 
     .sidebar-nav {
         flex-direction: row; /* Navegação fica horizontal */
-        gap: 5px;
+        gap: var(--spacing-sm);
     }
     
     .sidebar-header h3 {
-        margin-bottom: 0; /* Remove a margem do título */
+        margin-bottom: 0;
         font-size: 1.2rem;
     }
 
+    /* Esconde o texto dos links da sidebar, deixando só os ícones */
     .nav-item span:not(.material-symbols-outlined) {
-        display: none; /* Esconde o texto dos links, deixando só os ícones */
+        display: none;
     }
     
     .nav-item {
-        padding: 8px;
+        padding: var(--spacing-sm);
     }
 
     .main-content {
-        padding: 20px;
+        padding: var(--spacing-xl);
+    }
+
+    /* Ajuste para cabeçalho com botão */
+    .main-header-with-button {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-lg);
+    }
+    .main-header-with-button .btn {
+        width: 100%;
+    }
+
+    /* Cards de cursos se ajustam */
+    .course-cards-container {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* Reduz o minwidth um pouco */
+    }
+
+    /* Barra de seleção de aluno */
+    .student-selector-bar {
+        flex-wrap: wrap; /* Permite quebrar a linha */
+        padding: var(--spacing-md) var(--spacing-xl);
+    }
+    .student-selector-bar .form-select {
+        min-width: unset; /* Remove o min-width fixo */
+        flex-grow: 1; /* Permite que o select cresça */
     }
 }
 
@@ -596,214 +905,52 @@ body {
     /* Lista de alunos se torna vertical */
     .student-list-item-card {
         flex-direction: column;
-        align-items: flex-start; /* Alinha tudo à esquerda */
-        gap: 15px;
+        align-items: flex-start;
+        gap: var(--spacing-lg);
     }
     
+    .student-info,
+    .student-course-info,
+    .student-progress-info,
+    .student-activity-info,
     .student-actions {
-        width: 100%; /* Botão ocupa toda a largura */
+        width: 100%; /* Cada seção ocupa a largura total */
+    }
+
+    .student-actions {
         text-align: left; /* Alinha o botão à esquerda */
     }
     .student-actions .btn {
         width: 100%;
+        justify-content: center; /* Centraliza o texto/ícone dentro do botão */
     }
 
     /* Lista de pagamentos se torna vertical */
     .payment-list-item {
         flex-direction: column;
         align-items: flex-start;
-        gap: 15px;
+        gap: var(--spacing-lg);
     }
     
     .payment-actions {
         flex-direction: column;
         width: 100%;
-        gap: 10px;
+        gap: var(--spacing-md);
     }
 
     .payment-actions .btn {
         width: 100%;
-        justify-content: center; /* Centraliza texto e ícone no botão */
+        justify-content: center;
     }
 
-    /* Cabeçalho com botão também se quebra */
-    .main-header-with-button {
-        flex-direction: column;
-        gap: 15px;
-        align-items: flex-start;
+    /* Modais em telas pequenas */
+    .modal-content {
+        padding: var(--spacing-lg); /* Menos padding em telas muito pequenas */
     }
-    .main-header-with-button .btn {
-        width: 100%;
+    .modal-header h2 {
+        font-size: 1.2rem;
     }
-}
-/* ========================================= */
-/* --- ESTILOS DO MODAL --- */
-/* ========================================= */
-
-.modal {
-    display: none; /* Escondido por padrão */
-    position: fixed; /* Fica fixo na tela */
-    z-index: 1000; /* Fica na frente de tudo */
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5); /* Fundo preto semi-transparente */
-
-    /* Centraliza o conteúdo do modal */
-    justify-content: center;
-    align-items: center;
-}
-
-/* Classe que será adicionada pelo JS para mostrar o modal */
-.modal.active {
-    display: flex; 
-}
-
-.modal-content {
-    background-color: #ffffff;
-    border-radius: 8px;
-    padding: 25px;
-    width: 90%;
-    max-width: 500px; /* Largura máxima */
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-}
-
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid #e9ecef;
-    padding-bottom: 15px;
-    margin-bottom: 20px;
-}
-
-.modal-header h2 {
-    font-size: 1.5rem;
-    margin: 0;
-}
-
-.close-button {
-    background: none;
-    border: none;
-    font-size: 2rem;
-    font-weight: 300;
-    cursor: pointer;
-    color: #6c757d;
-}
-
-.modal-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    border-top: 1px solid #e9ecef;
-    padding-top: 20px;
-    margin-top: 20px;
-}
-
-/* Estilos para inputs e textareas do formulário */
-.form-input {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ced4da;
-    border-radius: 8px;
-    font-family: 'Inter', sans-serif;
-    font-size: 1rem;
-}
-/* --- Estilos para Mensagens de Estado Vazio --- */
-.empty-message {
-    width: 100%;
-    text-align: center;
-    padding: 40px;
-    color: #6c757d;
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    border: 1px dashed #dee2e6;
-}
-/* Estilo para botão de ícone (lixeira) */
-.course-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.btn-icon {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: #adb5bd;
-    padding: 5px;
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-.btn-icon:hover {
-    color: #dc3545;
-    background-color: #f1f3f5;
-}
-/* Estilo para alinhar nome do aluno e lixeira */
-.student-name-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-/* Estilos para a barra de seleção de aluno */
-.student-selector-bar {
-    background-color: #fff;
-    padding: 10px 40px;
-    border-bottom: 1px solid #e0e0e0;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
-.student-selector-bar label {
-    font-weight: 600;
-    font-size: 0.9rem;
-}
-.student-selector-bar .form-select {
-    padding: 8px 12px;
-    min-width: 250px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    background-color: #f8f9fa;
-}
-/* ========================================= */
-/* Estilos para a Lista de Aulas (Conteúdo)  */
-/* ========================================= */
-
-#lessons-list-container {
-    display: flex;
-    flex-direction: column;
-    gap: 12px; /* Espaço entre os itens da lista */
-}
-
-.lesson-list-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px;
-    background-color: #ffffff;
-    border: 1px solid #e9ecef;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-    transition: box-shadow 0.2s;
-}
-
-.lesson-list-item:hover {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-}
-
-.lesson-list-item span {
-    font-weight: 500;
-}
-
-.lesson-actions {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    .close-button {
+        font-size: 1.8rem;
+    }
 }
