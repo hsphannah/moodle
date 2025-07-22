@@ -161,7 +161,7 @@ app.post('/api/admin/login', async (req, res) => {
         if (match) {
             // Incluído 'role: admin' no payload do JWT
             const payload = { id: admin.id, email: admin.email, role: 'admin' };
-            const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' }); // Token válido por 1 hora
+            const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1d' }); // Token válido por 1 hora
             res.json({ message: "Login de admin bem-sucedido!", token: token });
         } else {
             res.status(401).json({ error: "Credenciais inválidas." });
@@ -192,7 +192,7 @@ app.post('/api/alunos/login', async (req, res) => {
         if (match) {
             // Incluído 'role: student' no payload do JWT, e o nome do aluno
             const payload = { id: aluno.id, email: aluno.email, role: 'student', nome: aluno.name };
-            const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' }); // Token válido por 1 hora
+            const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1d' }); // Token válido por 1 hora
             res.json({ message: "Login de aluno bem-sucedido!", token: token });
         } else {
             res.status(401).json({ error: "Credenciais inválidas." });
